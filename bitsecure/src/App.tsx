@@ -1,11 +1,13 @@
-
+import LoginHeader from "./components/LoginHeader"
 export default function App() {
   
 
   return (
+    <>
     <div>
-      <p>Result: {1 + 1}</p>
+      <LoginHeader/>
     </div>
+    </>
   )
 }
 
