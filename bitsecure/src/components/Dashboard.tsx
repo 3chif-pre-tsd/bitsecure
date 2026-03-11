@@ -1,11 +1,16 @@
 import type { UserProfile } from "../models/auth";
-import type { PasswordEntry, PasswordEntryInput } from "../models/passwordEntry";
+import type {
+  PasswordEntry,
+  PasswordEntryInput,
+  PasswordEntryValidationErrors,
+} from "../models/passwordEntry";
 import EntryPlaceholder from "./EntryPlaceholder";
 
 interface DashboardProps {
   user: UserProfile;
   entries: PasswordEntry[];
   entryDraft: PasswordEntryInput;
+  entryErrors: PasswordEntryValidationErrors;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
   onAddEntry: () => void;
 }
@@ -14,6 +19,7 @@ export default function Dashboard({
   user,
   entries,
   entryDraft,
+  entryErrors,
   onEntryDraftChange,
   onAddEntry,
 }: DashboardProps) {
@@ -82,6 +88,7 @@ export default function Dashboard({
             <EntryPlaceholder
               entries={entries}
               entryDraft={entryDraft}
+              entryErrors={entryErrors}
               onEntryDraftChange={onEntryDraftChange}
               onAddEntry={onAddEntry}
             />

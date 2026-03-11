@@ -3,7 +3,10 @@ import AuthPanel from "./components/AuthPanel";
 import Dashboard from "./components/Dashboard";
 import { DEFAULT_USER } from "./constants/auth";
 import type { AuthResult } from "./models/auth";
-import type { PasswordEntryInput } from "./models/passwordEntry";
+import type {
+  PasswordEntryInput,
+  PasswordEntryValidationErrors,
+} from "./models/passwordEntry";
 import {
   hasMasterPassword as hasStoredMasterPassword,
   setMasterPassword,
@@ -29,6 +32,7 @@ export default function App() {
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
   const [entries, setEntries] = useState(getPasswordEntries);
   const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
+  const [entryErrors, setEntryErrors] = useState<PasswordEntryValidationErrors>({});
 
   useEffect(() => {
     setHasMasterPassword(hasStoredMasterPassword());
@@ -57,16 +61,50 @@ export default function App() {
       ...currentDraft,
       [field]: value,
     }));
+    setEntryErrors((currentErrors) => ({
+      ...currentErrors,
+      [field]: undefined,
+    }));
+  }
+
+  function validateEntryDraft(): PasswordEntryValidationErrors {
+    const nextErrors: PasswordEntryValidationErrors = {};
+
+    if (!entryDraft.title.trim()) {
+      nextErrors.title = "Title is required.";
+    }
+
+    if (!entryDraft.username.trim()) {
+      nextErrors.username = "Username is required.";
+    }
+
+    if (!entryDraft.password.trim()) {
+      nextErrors.password = "Password is required.";
+    }
+
+    if (entryDraft.url.trim()) {
+      try {
+        new URL(entryDraft.url);
+      } catch {
+        nextErrors.url = "URL must be valid.";
+      }
+    }
+
+    return nextErrors;
   }
 
   function handleAddEntry() {
-    if (!entryDraft.title.trim() || !entryDraft.username.trim() || !entryDraft.password.trim()) {
+    const validationErrors = validateEntryDraft();
+
+    if (Object.keys(validationErrors).length > 0) {
+      setEntryErrors(validationErrors);
       return;
     }
 
     addPasswordEntry(entryDraft);
     setEntries(getPasswordEntries());
     setEntryDraft(EMPTY_ENTRY_DRAFT);
+    setEntryErrors({});
   }
 
   return (
@@ -85,6 +123,7 @@ export default function App() {
           user={DEFAULT_USER}
           entries={entries}
           entryDraft={entryDraft}
+          entryErrors={entryErrors}
           onEntryDraftChange={handleEntryDraftChange}
           onAddEntry={handleAddEntry}
         />
