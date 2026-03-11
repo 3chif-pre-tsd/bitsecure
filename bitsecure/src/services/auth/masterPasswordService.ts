@@ -1,6 +1,10 @@
 import { AUTH_STORAGE_KEY } from "../../constants/auth";
 import type { AuthResult, StoredMasterPassword } from "../../models/auth";
-import { readFromStorage, writeToStorage } from "../storage/localStorage";
+import {
+  readFromStorage,
+  removeFromStorage,
+  writeToStorage,
+} from "../storage/localStorage";
 
 function readStoredMasterPassword(): StoredMasterPassword | null {
   const rawValue = readFromStorage(AUTH_STORAGE_KEY);
@@ -9,7 +13,21 @@ function readStoredMasterPassword(): StoredMasterPassword | null {
     return null;
   }
 
-  return JSON.parse(rawValue) as StoredMasterPassword;
+  try {
+    const parsedValue = JSON.parse(rawValue) as Partial<StoredMasterPassword>;
+
+    if (typeof parsedValue.value !== "string") {
+      removeFromStorage(AUTH_STORAGE_KEY);
+      return null;
+    }
+
+    return {
+      value: parsedValue.value,
+    };
+  } catch {
+    removeFromStorage(AUTH_STORAGE_KEY);
+    return null;
+  }
 }
 
 function saveStoredMasterPassword(payload: StoredMasterPassword): void {
