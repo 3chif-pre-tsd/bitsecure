@@ -1,5 +1,6 @@
 import type { UserProfile } from "../models/auth";
 import type { PasswordEntry, PasswordEntryInput } from "../models/passwordEntry";
+import EntryPlaceholder from "./EntryPlaceholder";
 
 interface DashboardProps {
   user: UserProfile;
@@ -9,8 +10,6 @@ interface DashboardProps {
   onAddEntry: () => void;
 }
 
-const maskedPassword = "••••••••";
-
 export default function Dashboard({
   user,
   entries,
@@ -19,124 +18,76 @@ export default function Dashboard({
   onAddEntry,
 }: DashboardProps) {
   return (
-    <main className="dashboard-shell">
-      <section className="panel hero-panel">
-        <div>
-          <span className="eyebrow">Dashboard</span>
-          <h1>{user.displayName}</h1>
-          <p>
-            BitSecure Sprint 1 provides the first vault structure, a master password
-            entry point, and the base for storing password items.
-          </p>
-        </div>
-
-        <div className="hero-metrics">
-          <article>
-            <span>Role</span>
-            <strong>{user.role}</strong>
-          </article>
-          <article>
-            <span>Email</span>
-            <strong>{user.email}</strong>
-          </article>
-          <article>
-            <span>Entries</span>
-            <strong>{entries.length}</strong>
-          </article>
-        </div>
-      </section>
-
-      <section className="dashboard-grid">
-        <article className="panel">
-          <div className="panel-heading">
-            <span className="eyebrow">Vault</span>
-            <h2>Password entries</h2>
-            <p>The list structure is ready for future encrypted entry management.</p>
+    <>
+      <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+        <div className="container">
+          <span className="navbar-brand">BitSecure</span>
+          <div className="navbar-nav">
+            <span className="nav-link active">Dashboard</span>
+            <span className="nav-link">Entries</span>
+            <span className="nav-link">Settings</span>
           </div>
+        </div>
+      </nav>
 
-          <div className="entry-list">
-            {entries.length === 0 ? (
-              <div className="empty-state">
-                <strong>No entries yet</strong>
-                <p>Add your first password entry to populate the dashboard list.</p>
-              </div>
-            ) : (
-              entries.map((entry) => (
-                <article key={entry.id} className="entry-card">
-                  <div>
-                    <h3>{entry.title}</h3>
-                    <p>{entry.url || "No URL provided"}</p>
+      <main className="container py-4">
+        <div className="row g-4">
+          <div className="col-12">
+            <div className="card">
+              <div className="card-body">
+                <h1 className="h3 card-title mb-3">Dashboard</h1>
+                <p className="card-text text-body-secondary">
+                  This page contains the initial dashboard layout and placeholder navigation.
+                </p>
+                <div className="row g-3">
+                  <div className="col-12 col-md-4">
+                    <div className="border rounded p-3 h-100">
+                      <h2 className="h6">User</h2>
+                      <p className="mb-1">{user.displayName}</p>
+                      <p className="mb-1 text-body-secondary">{user.email}</p>
+                      <p className="mb-0 text-body-secondary">{user.role}</p>
+                    </div>
                   </div>
-                  <dl>
-                    <div>
-                      <dt>Username</dt>
-                      <dd>{entry.username}</dd>
+                  <div className="col-12 col-md-4">
+                    <div className="border rounded p-3 h-100">
+                      <h2 className="h6">Status</h2>
+                      <p className="mb-0 text-body-secondary">Authenticated and ready for future features.</p>
                     </div>
-                    <div>
-                      <dt>Password</dt>
-                      <dd>{maskedPassword}</dd>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <div className="border rounded p-3 h-100">
+                      <h2 className="h6">Entries</h2>
+                      <p className="mb-0 text-body-secondary">{entries.length} placeholder entries stored.</p>
                     </div>
-                  </dl>
-                </article>
-              ))
-            )}
-          </div>
-        </article>
-
-        <article className="panel">
-          <div className="panel-heading">
-            <span className="eyebrow">Preparation</span>
-            <h2>Add entry</h2>
-            <p>The UI is minimal, but the entry logic is active and stored locally.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="entry-form">
-            <label className="field">
-              <span>Title</span>
-              <input
-                type="text"
-                value={entryDraft.title}
-                onChange={(event) => onEntryDraftChange("title", event.target.value)}
-                placeholder="GitHub"
-              />
-            </label>
-
-            <label className="field">
-              <span>Username</span>
-              <input
-                type="text"
-                value={entryDraft.username}
-                onChange={(event) => onEntryDraftChange("username", event.target.value)}
-                placeholder="octocat"
-              />
-            </label>
-
-            <label className="field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={entryDraft.password}
-                onChange={(event) => onEntryDraftChange("password", event.target.value)}
-                placeholder="Vault item password"
-              />
-            </label>
-
-            <label className="field">
-              <span>URL</span>
-              <input
-                type="url"
-                value={entryDraft.url}
-                onChange={(event) => onEntryDraftChange("url", event.target.value)}
-                placeholder="https://github.com"
-              />
-            </label>
-
-            <button type="button" className="secondary-button" onClick={onAddEntry}>
-              Add entry
-            </button>
+          <div className="col-12 col-lg-6">
+            <div className="card h-100">
+              <div className="card-body">
+                <h2 className="h5 card-title">Navigation structure</h2>
+                <ul className="list-group list-group-flush">
+                  <li className="list-group-item px-0">Dashboard overview</li>
+                  <li className="list-group-item px-0">Entries placeholder</li>
+                  <li className="list-group-item px-0">Settings placeholder</li>
+                </ul>
+              </div>
+            </div>
           </div>
-        </article>
-      </section>
-    </main>
+
+          <div className="col-12 col-lg-6">
+            <EntryPlaceholder
+              entries={entries}
+              entryDraft={entryDraft}
+              onEntryDraftChange={onEntryDraftChange}
+              onAddEntry={onAddEntry}
+            />
+          </div>
+        </div>
+      </main>
+    </>
   );
 }

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import "./App.css";
 import AuthPanel from "./components/AuthPanel";
 import Dashboard from "./components/Dashboard";
 import { DEFAULT_USER } from "./constants/auth";
@@ -71,7 +70,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <>
       {!isAuthenticated ? (
         <AuthPanel
           hasMasterPassword={hasMasterPassword}
@@ -90,7 +89,7 @@ export default function App() {
           onAddEntry={handleAddEntry}
         />
       )}
-    </div>
+    </>
   );
 }
 

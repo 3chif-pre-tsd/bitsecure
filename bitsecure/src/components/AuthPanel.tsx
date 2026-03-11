@@ -17,10 +17,10 @@ export default function AuthPanel({
   onPasswordChange,
   onSubmit,
 }: AuthPanelProps) {
-  const title = hasMasterPassword ? "Unlock your vault" : "Create your master password";
+  const title = hasMasterPassword ? "Login" : "Create master password";
   const description = hasMasterPassword
-    ? "Use your master password to access BitSecure."
-    : "Set the password that will protect your vault locally in this browser.";
+    ? "Enter your master password to continue to the dashboard."
+    : "Set a master password to enable the basic authentication flow.";
   const buttonLabel = isSubmitting
     ? "Please wait..."
     : hasMasterPassword
@@ -28,31 +28,50 @@ export default function AuthPanel({
       : "Save master password";
 
   return (
-    <section className="panel auth-panel">
-      <div className="panel-heading">
-        <span className="eyebrow">Sprint 1</span>
-        <h1>{title}</h1>
-        <p>{description}</p>
+    <div className="container py-5">
+      <div className="row justify-content-center">
+        <div className="col-12 col-md-8 col-lg-5">
+          <div className="card shadow-sm">
+            <div className="card-body p-4">
+              <h1 className="h3 mb-2">{title}</h1>
+              <p className="text-body-secondary mb-4">{description}</p>
+
+              <div className="mb-3">
+                <label htmlFor="master-password" className="form-label">
+                  Master password
+                </label>
+                <input
+                  id="master-password"
+                  type="password"
+                  className="form-control"
+                  value={draftPassword}
+                  onChange={(event) => onPasswordChange(event.target.value)}
+                  placeholder="Enter your master password"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              {authResult ? (
+                <div
+                  className={`alert ${authResult.status === "success" ? "alert-success" : "alert-danger"}`}
+                  role="alert"
+                >
+                  {authResult.message}
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                className="btn btn-primary w-100"
+                onClick={onSubmit}
+                disabled={isSubmitting}
+              >
+                {buttonLabel}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <label className="field">
-        <span>Master password</span>
-        <input
-          type="password"
-          value={draftPassword}
-          onChange={(event) => onPasswordChange(event.target.value)}
-          placeholder="Enter your master password"
-          autoComplete="current-password"
-        />
-      </label>
-
-      {authResult ? (
-        <p className={`status-message ${authResult.status}`}>{authResult.message}</p>
-      ) : null}
-
-      <button type="button" className="primary-button" onClick={onSubmit} disabled={isSubmitting}>
-        {buttonLabel}
-      </button>
-    </section>
+    </div>
   );
 }
