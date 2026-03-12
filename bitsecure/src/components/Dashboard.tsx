@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { UserProfile } from "../models/auth";
 import type {
   PasswordEntry,
@@ -38,6 +39,8 @@ export default function Dashboard({
   onSelectEntry,
   onLogout,
 }: DashboardProps) {
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
   return (
     <>
       <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom">
@@ -104,7 +107,10 @@ export default function Dashboard({
                         className={`list-group-item list-group-item-action${
                           selectedEntry?.id === entry.id ? " active" : ""
                         }`}
-                        onClick={() => onSelectEntry(entry.id)}
+                        onClick={() => {
+                          onSelectEntry(entry.id);
+                          setIsPasswordVisible(false);
+                        }}
                       >
                         <div className="d-flex w-100 justify-content-between">
                           <span className="fw-semibold">{entry.title}</span>
@@ -148,7 +154,16 @@ export default function Dashboard({
 
                       <dt className="col-sm-4">Password</dt>
                       <dd className="col-sm-8">
-                        <code>••••••••••••</code>
+                        <div className="d-flex gap-2 align-items-center">
+                          <code>{isPasswordVisible ? selectedEntry.password : "••••••••••••"}</code>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
+                          >
+                            {isPasswordVisible ? "Hide" : "Show"}
+                          </button>
+                        </div>
                       </dd>
 
                       <dt className="col-sm-4">URL</dt>
