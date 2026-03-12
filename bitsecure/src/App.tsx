@@ -17,6 +17,7 @@ import {
 import {
   addPasswordEntry,
   getPasswordEntries,
+  updatePasswordEntry,
 } from "./services/entries/passwordEntryService";
 import { validatePasswordEntry } from "./services/entries/entryValidation";
 
@@ -38,6 +39,7 @@ export default function App() {
   const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
   const [entryErrors, setEntryErrors] = useState<PasswordEntryValidationErrors>({});
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
 
   useEffect(() => {
@@ -99,16 +101,45 @@ export default function App() {
     }
 
     setIsSavingEntry(true);
-    const createdEntry = await addPasswordEntry(entryDraft);
-    await loadEntries(createdEntry.id);
+
+    if (editingEntryId) {
+      const updatedEntry = await updatePasswordEntry(editingEntryId, entryDraft);
+
+      if (updatedEntry) {
+        await loadEntries(updatedEntry.id);
+      }
+    } else {
+      const createdEntry = await addPasswordEntry(entryDraft);
+      await loadEntries(createdEntry.id);
+    }
 
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
+    setEditingEntryId(null);
     setIsSavingEntry(false);
   }
 
   function handleSelectEntry(entryId: string) {
     setSelectedEntryId(entryId);
+  }
+
+  function handleEditEntry(entry: PasswordEntry) {
+    setEditingEntryId(entry.id);
+    setSelectedEntryId(entry.id);
+    setEntryDraft({
+      title: entry.title,
+      username: entry.username,
+      password: entry.password,
+      url: entry.url,
+      notes: entry.notes,
+    });
+    setEntryErrors({});
+  }
+
+  function handleCancelEdit() {
+    setEditingEntryId(null);
+    setEntryDraft(EMPTY_ENTRY_DRAFT);
+    setEntryErrors({});
   }
 
   function handleLogout() {
@@ -118,6 +149,7 @@ export default function App() {
     setAuthResult(null);
     setEntries([]);
     setSelectedEntryId(null);
+    setEditingEntryId(null);
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
   }
@@ -142,10 +174,13 @@ export default function App() {
           selectedEntry={selectedEntry}
           entryDraft={entryDraft}
           entryErrors={entryErrors}
+          editingEntryId={editingEntryId}
           isSavingEntry={isSavingEntry}
           onEntryDraftChange={handleEntryDraftChange}
           onSaveEntry={handleSaveEntry}
           onSelectEntry={handleSelectEntry}
+          onEditEntry={handleEditEntry}
+          onCancelEdit={handleCancelEdit}
           onLogout={handleLogout}
         />
       )}

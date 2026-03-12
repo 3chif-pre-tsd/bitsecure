@@ -8,27 +8,35 @@ interface EntryPlaceholderProps {
   entries: PasswordEntry[];
   entryDraft: PasswordEntryInput;
   entryErrors: PasswordEntryValidationErrors;
+  editingEntryId: string | null;
   isSavingEntry: boolean;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
   onSaveEntry: () => void;
+  onCancelEdit: () => void;
 }
 
 export default function EntryPlaceholder({
   entries,
   entryDraft,
   entryErrors,
+  editingEntryId,
   isSavingEntry,
   onEntryDraftChange,
   onSaveEntry,
+  onCancelEdit,
 }: EntryPlaceholderProps) {
   return (
     <div className="card h-100">
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-start mb-3">
           <div>
-            <h2 className="h5 card-title mb-1">Add entry</h2>
+            <h2 className="h5 card-title mb-1">
+              {editingEntryId ? "Edit entry" : "Add entry"}
+            </h2>
             <p className="card-text text-body-secondary mb-0">
-              Create a new credential entry in your encrypted vault.
+              {editingEntryId
+                ? "Update the selected credential and save the encrypted changes."
+                : "Create a new credential entry in your encrypted vault."}
             </p>
           </div>
           <span className="badge text-bg-light">{entries.length} total</span>
@@ -118,8 +126,18 @@ export default function EntryPlaceholder({
           </div>
 
           <div className="d-flex gap-2 justify-content-end">
+            {editingEntryId ? (
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={onCancelEdit}
+                disabled={isSavingEntry}
+              >
+                Cancel
+              </button>
+            ) : null}
             <button type="submit" className="btn btn-primary" disabled={isSavingEntry}>
-              {isSavingEntry ? "Saving..." : "Add entry"}
+              {isSavingEntry ? "Saving..." : editingEntryId ? "Save changes" : "Add entry"}
             </button>
           </div>
         </form>

@@ -13,10 +13,13 @@ interface DashboardProps {
   selectedEntry: PasswordEntry | null;
   entryDraft: PasswordEntryInput;
   entryErrors: PasswordEntryValidationErrors;
+  editingEntryId: string | null;
   isSavingEntry: boolean;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
   onSaveEntry: () => void;
   onSelectEntry: (entryId: string) => void;
+  onEditEntry: (entry: PasswordEntry) => void;
+  onCancelEdit: () => void;
   onLogout: () => void;
 }
 
@@ -33,10 +36,13 @@ export default function Dashboard({
   selectedEntry,
   entryDraft,
   entryErrors,
+  editingEntryId,
   isSavingEntry,
   onEntryDraftChange,
   onSaveEntry,
   onSelectEntry,
+  onEditEntry,
+  onCancelEdit,
   onLogout,
 }: DashboardProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -186,6 +192,16 @@ export default function Dashboard({
                       <dt className="col-sm-4">Updated</dt>
                       <dd className="col-sm-8">{formatDateTime(selectedEntry.updatedAt)}</dd>
                     </dl>
+
+                    <div className="d-flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => onEditEntry(selectedEntry)}
+                      >
+                        Edit entry
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <div className="border rounded p-3 text-body-secondary">
@@ -201,9 +217,11 @@ export default function Dashboard({
               entries={entries}
               entryDraft={entryDraft}
               entryErrors={entryErrors}
+              editingEntryId={editingEntryId}
               isSavingEntry={isSavingEntry}
               onEntryDraftChange={onEntryDraftChange}
               onSaveEntry={onSaveEntry}
+              onCancelEdit={onCancelEdit}
             />
           </div>
         </div>

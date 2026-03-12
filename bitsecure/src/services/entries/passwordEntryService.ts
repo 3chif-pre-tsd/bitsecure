@@ -86,3 +86,27 @@ export async function addPasswordEntry(entryInput: PasswordEntryInput): Promise<
 
   return nextEntry;
 }
+
+export async function updatePasswordEntry(
+  entryId: string,
+  entryInput: PasswordEntryInput,
+): Promise<PasswordEntry | null> {
+  const normalizedEntry = normalizeEntryInput(entryInput);
+  const entries = await readEntries();
+  const existingEntry = entries.find((entry) => entry.id === entryId);
+
+  if (!existingEntry) {
+    return null;
+  }
+
+  const updatedEntry: PasswordEntry = {
+    ...existingEntry,
+    ...normalizedEntry,
+    updatedAt: new Date().toISOString(),
+  };
+  const nextEntries = entries.map((entry) => (entry.id === entryId ? updatedEntry : entry));
+
+  await saveEntries(nextEntries);
+
+  return updatedEntry;
+}
