@@ -4,10 +4,12 @@ import Dashboard from "./components/Dashboard";
 import { DEFAULT_USER } from "./constants/auth";
 import type { AuthResult } from "./models/auth";
 import type {
+  PasswordEntry,
   PasswordEntryInput,
   PasswordEntryValidationErrors,
 } from "./models/passwordEntry";
 import {
+  clearActiveEncryptionKey,
   hasMasterPassword as hasStoredMasterPassword,
   setMasterPassword,
   validateMasterPassword,
@@ -16,12 +18,14 @@ import {
   addPasswordEntry,
   getPasswordEntries,
 } from "./services/entries/passwordEntryService";
+import { validatePasswordEntry } from "./services/entries/entryValidation";
 
 const EMPTY_ENTRY_DRAFT: PasswordEntryInput = {
   title: "",
   username: "",
   password: "",
   url: "",
+  notes: "",
 };
 
 export default function App() {
@@ -30,13 +34,32 @@ export default function App() {
   const [draftPassword, setDraftPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
-  const [entries, setEntries] = useState(getPasswordEntries);
+  const [entries, setEntries] = useState<PasswordEntry[]>([]);
   const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
   const [entryErrors, setEntryErrors] = useState<PasswordEntryValidationErrors>({});
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [isSavingEntry, setIsSavingEntry] = useState(false);
 
   useEffect(() => {
     setHasMasterPassword(hasStoredMasterPassword());
   }, []);
+
+  async function loadEntries(nextSelectedEntryId?: string | null) {
+    const storedEntries = await getPasswordEntries();
+
+    setEntries(storedEntries);
+    setSelectedEntryId((currentSelectedEntryId) => {
+      const requestedEntryId = nextSelectedEntryId ?? currentSelectedEntryId;
+
+      if (!requestedEntryId) {
+        return storedEntries[0]?.id ?? null;
+      }
+
+      return storedEntries.some((entry) => entry.id === requestedEntryId)
+        ? requestedEntryId
+        : storedEntries[0]?.id ?? null;
+    });
+  }
 
   async function handleAuthSubmit() {
     setIsSubmitting(true);
@@ -52,7 +75,7 @@ export default function App() {
       setHasMasterPassword(true);
       setIsAuthenticated(true);
       setDraftPassword("");
-      setEntries(getPasswordEntries());
+      await loadEntries();
     }
   }
 
@@ -67,45 +90,39 @@ export default function App() {
     }));
   }
 
-  function validateEntryDraft(): PasswordEntryValidationErrors {
-    const nextErrors: PasswordEntryValidationErrors = {};
-
-    if (!entryDraft.title.trim()) {
-      nextErrors.title = "Title is required.";
-    }
-
-    if (!entryDraft.username.trim()) {
-      nextErrors.username = "Username is required.";
-    }
-
-    if (!entryDraft.password.trim()) {
-      nextErrors.password = "Password is required.";
-    }
-
-    if (entryDraft.url.trim()) {
-      try {
-        new URL(entryDraft.url);
-      } catch {
-        nextErrors.url = "URL must be valid.";
-      }
-    }
-
-    return nextErrors;
-  }
-
-  function handleAddEntry() {
-    const validationErrors = validateEntryDraft();
+  async function handleSaveEntry() {
+    const validationErrors = validatePasswordEntry(entryDraft);
 
     if (Object.keys(validationErrors).length > 0) {
       setEntryErrors(validationErrors);
       return;
     }
 
-    addPasswordEntry(entryDraft);
-    setEntries(getPasswordEntries());
+    setIsSavingEntry(true);
+    const createdEntry = await addPasswordEntry(entryDraft);
+    await loadEntries(createdEntry.id);
+
+    setEntryDraft(EMPTY_ENTRY_DRAFT);
+    setEntryErrors({});
+    setIsSavingEntry(false);
+  }
+
+  function handleSelectEntry(entryId: string) {
+    setSelectedEntryId(entryId);
+  }
+
+  function handleLogout() {
+    clearActiveEncryptionKey();
+    setIsAuthenticated(false);
+    setDraftPassword("");
+    setAuthResult(null);
+    setEntries([]);
+    setSelectedEntryId(null);
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
   }
+
+  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
 
   return (
     <>
@@ -122,13 +139,16 @@ export default function App() {
         <Dashboard
           user={DEFAULT_USER}
           entries={entries}
+          selectedEntry={selectedEntry}
           entryDraft={entryDraft}
           entryErrors={entryErrors}
+          isSavingEntry={isSavingEntry}
           onEntryDraftChange={handleEntryDraftChange}
-          onAddEntry={handleAddEntry}
+          onSaveEntry={handleSaveEntry}
+          onSelectEntry={handleSelectEntry}
+          onLogout={handleLogout}
         />
       )}
     </>
   );
 }
-

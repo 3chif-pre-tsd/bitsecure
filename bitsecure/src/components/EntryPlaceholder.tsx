@@ -8,34 +8,41 @@ interface EntryPlaceholderProps {
   entries: PasswordEntry[];
   entryDraft: PasswordEntryInput;
   entryErrors: PasswordEntryValidationErrors;
+  isSavingEntry: boolean;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
-  onAddEntry: () => void;
+  onSaveEntry: () => void;
 }
 
 export default function EntryPlaceholder({
   entries,
   entryDraft,
   entryErrors,
+  isSavingEntry,
   onEntryDraftChange,
-  onAddEntry,
+  onSaveEntry,
 }: EntryPlaceholderProps) {
   return (
-    <div className="card">
+    <div className="card h-100">
       <div className="card-body">
-        <h2 className="h5 card-title">Entry preparation</h2>
-        <p className="card-text text-body-secondary">
-          This is a placeholder for future password entry management.
-        </p>
+        <div className="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h2 className="h5 card-title mb-1">Add entry</h2>
+            <p className="card-text text-body-secondary mb-0">
+              Create a new credential entry in your encrypted vault.
+            </p>
+          </div>
+          <span className="badge text-bg-light">{entries.length} total</span>
+        </div>
 
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            onAddEntry();
+            void onSaveEntry();
           }}
           noValidate
         >
           <div className="row g-3 mb-3">
-            <div className="col-12 col-md-6">
+            <div className="col-12">
               <label htmlFor="entry-title" className="form-label">
                 Title
               </label>
@@ -81,7 +88,7 @@ export default function EntryPlaceholder({
                 <div className="invalid-feedback">{entryErrors.password}</div>
               ) : null}
             </div>
-            <div className="col-12 col-md-6">
+            <div className="col-12">
               <label htmlFor="entry-url" className="form-label">
                 URL
               </label>
@@ -95,12 +102,24 @@ export default function EntryPlaceholder({
               />
               {entryErrors.url ? <div className="invalid-feedback">{entryErrors.url}</div> : null}
             </div>
+            <div className="col-12">
+              <label htmlFor="entry-notes" className="form-label">
+                Notes
+              </label>
+              <textarea
+                id="entry-notes"
+                className="form-control"
+                rows={4}
+                value={entryDraft.notes}
+                onChange={(event) => onEntryDraftChange("notes", event.target.value)}
+                placeholder="Optional notes"
+              />
+            </div>
           </div>
 
-          <div className="d-flex justify-content-between align-items-center">
-            <span className="text-body-secondary">Stored placeholders: {entries.length}</span>
-            <button type="submit" className="btn btn-outline-primary">
-              Add entry
+          <div className="d-flex gap-2 justify-content-end">
+            <button type="submit" className="btn btn-primary" disabled={isSavingEntry}>
+              {isSavingEntry ? "Saving..." : "Add entry"}
             </button>
           </div>
         </form>
