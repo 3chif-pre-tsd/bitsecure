@@ -1,12 +1,6 @@
-import { ENTRY_STORAGE_KEY } from "../../constants/auth";
-import type {
-  PasswordEntry,
-  PasswordEntryInput,
-  StoredEncryptedEntries,
-} from "../../models/passwordEntry";
+import type { PasswordEntry, PasswordEntryInput } from "../../models/passwordEntry";
 import { getActiveEncryptionKey } from "../auth/masterPasswordService";
-import { decryptText, encryptText } from "../security/cryptoService";
-import { readFromStorage, writeToStorage } from "../storage/localStorage";
+import { readVaultEntriesWithKey, writeVaultEntriesWithKey } from "../storage/encryptedVaultStorage";
 
 function getSessionKey(): CryptoKey {
   const encryptionKey = getActiveEncryptionKey();
@@ -16,45 +10,6 @@ function getSessionKey(): CryptoKey {
   }
 
   return encryptionKey;
-}
-
-async function readEntries(): Promise<PasswordEntry[]> {
-  const rawEntries = readFromStorage(ENTRY_STORAGE_KEY);
-
-  if (!rawEntries) {
-    return [];
-  }
-
-  try {
-    const encryptedEntries = JSON.parse(rawEntries) as Partial<StoredEncryptedEntries>;
-
-    if (
-      typeof encryptedEntries.iv !== "string" ||
-      typeof encryptedEntries.payload !== "string"
-    ) {
-      return [];
-    }
-
-    const payload = await decryptText(
-      encryptedEntries.payload,
-      encryptedEntries.iv,
-      getSessionKey(),
-    );
-    const parsedEntries = JSON.parse(payload);
-
-    if (!Array.isArray(parsedEntries)) {
-      return [];
-    }
-
-    return parsedEntries as PasswordEntry[];
-  } catch {
-    return [];
-  }
-}
-
-async function saveEntries(entries: PasswordEntry[]): Promise<void> {
-  const encryptedEntries = await encryptText(JSON.stringify(entries), getSessionKey());
-  writeToStorage(ENTRY_STORAGE_KEY, JSON.stringify(encryptedEntries));
 }
 
 function normalizeEntryInput(entryInput: PasswordEntryInput): PasswordEntryInput {
@@ -68,7 +23,7 @@ function normalizeEntryInput(entryInput: PasswordEntryInput): PasswordEntryInput
 }
 
 export async function getPasswordEntries(): Promise<PasswordEntry[]> {
-  return readEntries();
+  return readVaultEntriesWithKey(getSessionKey());
 }
 
 export async function addPasswordEntry(entryInput: PasswordEntryInput): Promise<PasswordEntry> {
@@ -80,9 +35,9 @@ export async function addPasswordEntry(entryInput: PasswordEntryInput): Promise<
     createdAt: now,
     updatedAt: now,
   };
-  const entries = [...(await readEntries()), nextEntry];
+  const entries = [...(await getPasswordEntries()), nextEntry];
 
-  await saveEntries(entries);
+  await writeVaultEntriesWithKey(entries, getSessionKey());
 
   return nextEntry;
 }
@@ -92,7 +47,7 @@ export async function updatePasswordEntry(
   entryInput: PasswordEntryInput,
 ): Promise<PasswordEntry | null> {
   const normalizedEntry = normalizeEntryInput(entryInput);
-  const entries = await readEntries();
+  const entries = await getPasswordEntries();
   const existingEntry = entries.find((entry) => entry.id === entryId);
 
   if (!existingEntry) {
@@ -106,20 +61,20 @@ export async function updatePasswordEntry(
   };
   const nextEntries = entries.map((entry) => (entry.id === entryId ? updatedEntry : entry));
 
-  await saveEntries(nextEntries);
+  await writeVaultEntriesWithKey(nextEntries, getSessionKey());
 
   return updatedEntry;
 }
 
 export async function deletePasswordEntry(entryId: string): Promise<boolean> {
-  const entries = await readEntries();
+  const entries = await getPasswordEntries();
   const nextEntries = entries.filter((entry) => entry.id !== entryId);
 
   if (nextEntries.length === entries.length) {
     return false;
   }
 
-  await saveEntries(nextEntries);
+  await writeVaultEntriesWithKey(nextEntries, getSessionKey());
 
   return true;
 }

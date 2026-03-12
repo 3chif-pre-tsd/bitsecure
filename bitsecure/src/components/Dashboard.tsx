@@ -1,10 +1,11 @@
 import { useState } from "react";
-import type { UserProfile } from "../models/auth";
+import type { AuthResult, UserProfile } from "../models/auth";
 import type {
   PasswordEntry,
   PasswordEntryInput,
   PasswordEntryValidationErrors,
 } from "../models/passwordEntry";
+import ResetPasswordPanel from "./auth/ResetPasswordPanel";
 import DashboardHeader from "./vault/DashboardHeader";
 import EntryDetailsPanel from "./vault/EntryDetailsPanel";
 import EntryEditorPanel from "./vault/EntryEditorPanel";
@@ -20,6 +21,18 @@ interface DashboardProps {
   filterQuery: string;
   editingEntryId: string | null;
   isSavingEntry: boolean;
+  resetDraft: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  };
+  resetErrors: {
+    currentPassword?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  };
+  isResettingPassword: boolean;
+  resetResult: AuthResult | null;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
   onSaveEntry: () => void;
   onSelectEntry: (entryId: string) => void;
@@ -27,6 +40,11 @@ interface DashboardProps {
   onCancelEdit: () => void;
   onDeleteEntry: (entryId: string) => void;
   onFilterQueryChange: (value: string) => void;
+  onResetDraftChange: (
+    field: "currentPassword" | "newPassword" | "confirmPassword",
+    value: string,
+  ) => void;
+  onResetMasterPassword: () => void;
   onLogout: () => void;
 }
 
@@ -40,6 +58,10 @@ export default function Dashboard({
   filterQuery,
   editingEntryId,
   isSavingEntry,
+  resetDraft,
+  resetErrors,
+  isResettingPassword,
+  resetResult,
   onEntryDraftChange,
   onSaveEntry,
   onSelectEntry,
@@ -47,6 +69,8 @@ export default function Dashboard({
   onCancelEdit,
   onDeleteEntry,
   onFilterQueryChange,
+  onResetDraftChange,
+  onResetMasterPassword,
   onLogout,
 }: DashboardProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -92,6 +116,19 @@ export default function Dashboard({
             onCancelEdit={onCancelEdit}
           />
         </div>
+
+        <ResetPasswordPanel
+          currentPassword={resetDraft.currentPassword}
+          newPassword={resetDraft.newPassword}
+          confirmPassword={resetDraft.confirmPassword}
+          currentPasswordError={resetErrors.currentPassword}
+          newPasswordError={resetErrors.newPassword}
+          confirmPasswordError={resetErrors.confirmPassword}
+          isSubmitting={isResettingPassword}
+          resetResult={resetResult}
+          onChange={onResetDraftChange}
+          onSubmit={onResetMasterPassword}
+        />
       </div>
     </main>
   );

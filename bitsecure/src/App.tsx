@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import AuthPanel from "./components/AuthPanel";
 import Dashboard from "./components/Dashboard";
-import { DEFAULT_USER } from "./constants/auth";
-import type { AuthResult } from "./models/auth";
+import type { AuthResult, UserProfile } from "./models/auth";
 import type {
   PasswordEntry,
   PasswordEntryInput,
@@ -10,9 +9,11 @@ import type {
 } from "./models/passwordEntry";
 import {
   clearActiveEncryptionKey,
-  hasMasterPassword as hasStoredMasterPassword,
-  setMasterPassword,
-  validateMasterPassword,
+  getActiveUserProfile,
+  hasConfiguredAccount,
+  login,
+  registerAccount,
+  resetMasterPassword,
 } from "./services/auth/masterPasswordService";
 import {
   addPasswordEntry,
@@ -30,9 +31,17 @@ const EMPTY_ENTRY_DRAFT: PasswordEntryInput = {
   notes: "",
 };
 
+const EMPTY_RESET_DRAFT = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+};
+
 export default function App() {
-  const [hasMasterPassword, setHasMasterPassword] = useState(false);
+  const [hasAccount, setHasAccount] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [draftUsername, setDraftUsername] = useState("");
   const [draftPassword, setDraftPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
@@ -43,42 +52,63 @@ export default function App() {
   const [filterQuery, setFilterQuery] = useState("");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
+  const [resetDraft, setResetDraft] = useState(EMPTY_RESET_DRAFT);
+  const [resetErrors, setResetErrors] = useState<{
+    currentPassword?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  }>({});
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetResult, setResetResult] = useState<AuthResult | null>(null);
 
   useEffect(() => {
-    setHasMasterPassword(hasStoredMasterPassword());
+    setHasAccount(hasConfiguredAccount());
   }, []);
 
   async function loadEntries(nextSelectedEntryId?: string | null) {
-    const storedEntries = await getPasswordEntries();
+    try {
+      const storedEntries = await getPasswordEntries();
 
-    setEntries(storedEntries);
-    setSelectedEntryId((currentSelectedEntryId) => {
-      const requestedEntryId = nextSelectedEntryId ?? currentSelectedEntryId;
+      setEntries(storedEntries);
+      setSelectedEntryId((currentSelectedEntryId) => {
+        const requestedEntryId = nextSelectedEntryId ?? currentSelectedEntryId;
 
-      if (!requestedEntryId) {
-        return storedEntries[0]?.id ?? null;
-      }
+        if (!requestedEntryId) {
+          return storedEntries[0]?.id ?? null;
+        }
 
-      return storedEntries.some((entry) => entry.id === requestedEntryId)
-        ? requestedEntryId
-        : storedEntries[0]?.id ?? null;
-    });
+        return storedEntries.some((entry) => entry.id === requestedEntryId)
+          ? requestedEntryId
+          : storedEntries[0]?.id ?? null;
+      });
+    } catch {
+      setEntries([]);
+      setSelectedEntryId(null);
+    }
   }
 
   async function handleAuthSubmit() {
     setIsSubmitting(true);
 
-    const result = hasMasterPassword
-      ? await validateMasterPassword(draftPassword)
-      : await setMasterPassword(draftPassword);
+    const result = hasAccount
+      ? await login({
+          username: draftUsername,
+          password: draftPassword,
+        })
+      : await registerAccount({
+          username: draftUsername,
+          password: draftPassword,
+        });
 
     setAuthResult(result);
     setIsSubmitting(false);
 
     if (result.status === "success") {
-      setHasMasterPassword(true);
+      setHasAccount(true);
       setIsAuthenticated(true);
       setDraftPassword("");
+      const activeUser = getActiveUserProfile();
+      setCurrentUser(activeUser);
       await loadEntries();
     }
   }
@@ -104,21 +134,24 @@ export default function App() {
 
     setIsSavingEntry(true);
 
-    if (editingEntryId) {
-      const updatedEntry = await updatePasswordEntry(editingEntryId, entryDraft);
+    try {
+      if (editingEntryId) {
+        const updatedEntry = await updatePasswordEntry(editingEntryId, entryDraft);
 
-      if (updatedEntry) {
-        await loadEntries(updatedEntry.id);
+        if (updatedEntry) {
+          await loadEntries(updatedEntry.id);
+        }
+      } else {
+        const createdEntry = await addPasswordEntry(entryDraft);
+        await loadEntries(createdEntry.id);
       }
-    } else {
-      const createdEntry = await addPasswordEntry(entryDraft);
-      await loadEntries(createdEntry.id);
-    }
 
-    setEntryDraft(EMPTY_ENTRY_DRAFT);
-    setEntryErrors({});
-    setEditingEntryId(null);
-    setIsSavingEntry(false);
+      setEntryDraft(EMPTY_ENTRY_DRAFT);
+      setEntryErrors({});
+      setEditingEntryId(null);
+    } finally {
+      setIsSavingEntry(false);
+    }
   }
 
   function handleSelectEntry(entryId: string) {
@@ -146,21 +179,78 @@ export default function App() {
 
   async function handleDeleteEntry(entryId: string) {
     setIsSavingEntry(true);
-    const wasDeleted = await deletePasswordEntry(entryId);
 
-    if (wasDeleted) {
-      await loadEntries();
-      if (editingEntryId === entryId) {
-        handleCancelEdit();
+    try {
+      const wasDeleted = await deletePasswordEntry(entryId);
+
+      if (wasDeleted) {
+        await loadEntries();
+        if (editingEntryId === entryId) {
+          handleCancelEdit();
+        }
       }
+    } finally {
+      setIsSavingEntry(false);
+    }
+  }
+
+  function handleResetDraftChange(
+    field: "currentPassword" | "newPassword" | "confirmPassword",
+    value: string,
+  ) {
+    setResetDraft((currentDraft) => ({
+      ...currentDraft,
+      [field]: value,
+    }));
+    setResetErrors((currentErrors) => ({
+      ...currentErrors,
+      [field]: undefined,
+    }));
+  }
+
+  async function handleResetMasterPassword() {
+    const nextErrors: typeof resetErrors = {};
+
+    if (!resetDraft.currentPassword.trim()) {
+      nextErrors.currentPassword = "Current master password is required.";
     }
 
-    setIsSavingEntry(false);
+    if (!resetDraft.newPassword.trim()) {
+      nextErrors.newPassword = "New master password is required.";
+    }
+
+    if (resetDraft.newPassword === resetDraft.currentPassword && resetDraft.newPassword.trim()) {
+      nextErrors.newPassword = "New master password must be different.";
+    }
+
+    if (resetDraft.confirmPassword !== resetDraft.newPassword) {
+      nextErrors.confirmPassword = "Confirmation must match the new password.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setResetErrors(nextErrors);
+      return;
+    }
+
+    setIsResettingPassword(true);
+    const result = await resetMasterPassword({
+      currentPassword: resetDraft.currentPassword,
+      newPassword: resetDraft.newPassword,
+    });
+    setResetResult(result);
+    setIsResettingPassword(false);
+
+    if (result.status === "success") {
+      setResetDraft(EMPTY_RESET_DRAFT);
+      setResetErrors({});
+    }
   }
 
   function handleLogout() {
     clearActiveEncryptionKey();
     setIsAuthenticated(false);
+    setCurrentUser(null);
+    setDraftUsername("");
     setDraftPassword("");
     setAuthResult(null);
     setEntries([]);
@@ -169,6 +259,9 @@ export default function App() {
     setEditingEntryId(null);
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
+    setResetDraft(EMPTY_RESET_DRAFT);
+    setResetErrors({});
+    setResetResult(null);
   }
 
   const filteredEntries = entries.filter((entry) => {
@@ -187,38 +280,46 @@ export default function App() {
     entries.find((entry) => entry.id === selectedEntryId) ??
     null;
 
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <AuthPanel
+        hasAccount={hasAccount}
+        draftUsername={draftUsername}
+        draftPassword={draftPassword}
+        isSubmitting={isSubmitting}
+        authResult={authResult}
+        onUsernameChange={setDraftUsername}
+        onPasswordChange={setDraftPassword}
+        onSubmit={handleAuthSubmit}
+      />
+    );
+  }
+
   return (
-    <>
-      {!isAuthenticated ? (
-        <AuthPanel
-          hasMasterPassword={hasMasterPassword}
-          draftPassword={draftPassword}
-          isSubmitting={isSubmitting}
-          authResult={authResult}
-          onPasswordChange={setDraftPassword}
-          onSubmit={handleAuthSubmit}
-        />
-      ) : (
-        <Dashboard
-          user={DEFAULT_USER}
-          entries={entries}
-          filteredEntries={filteredEntries}
-          selectedEntry={selectedEntry}
-          entryDraft={entryDraft}
-          entryErrors={entryErrors}
-          filterQuery={filterQuery}
-          editingEntryId={editingEntryId}
-          isSavingEntry={isSavingEntry}
-          onEntryDraftChange={handleEntryDraftChange}
-          onSaveEntry={handleSaveEntry}
-          onSelectEntry={handleSelectEntry}
-          onEditEntry={handleEditEntry}
-          onCancelEdit={handleCancelEdit}
-          onDeleteEntry={handleDeleteEntry}
-          onFilterQueryChange={setFilterQuery}
-          onLogout={handleLogout}
-        />
-      )}
-    </>
+    <Dashboard
+      user={currentUser}
+      entries={entries}
+      filteredEntries={filteredEntries}
+      selectedEntry={selectedEntry}
+      entryDraft={entryDraft}
+      entryErrors={entryErrors}
+      filterQuery={filterQuery}
+      editingEntryId={editingEntryId}
+      isSavingEntry={isSavingEntry}
+      resetDraft={resetDraft}
+      resetErrors={resetErrors}
+      isResettingPassword={isResettingPassword}
+      resetResult={resetResult}
+      onEntryDraftChange={handleEntryDraftChange}
+      onSaveEntry={handleSaveEntry}
+      onSelectEntry={handleSelectEntry}
+      onEditEntry={handleEditEntry}
+      onCancelEdit={handleCancelEdit}
+      onDeleteEntry={handleDeleteEntry}
+      onFilterQueryChange={setFilterQuery}
+      onResetDraftChange={handleResetDraftChange}
+      onResetMasterPassword={handleResetMasterPassword}
+      onLogout={handleLogout}
+    />
   );
 }

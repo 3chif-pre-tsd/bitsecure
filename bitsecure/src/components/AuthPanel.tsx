@@ -5,31 +5,35 @@ import Icon from "./ui/Icon";
 import Panel from "./ui/Panel";
 
 interface AuthPanelProps {
-  hasMasterPassword: boolean;
+  hasAccount: boolean;
+  draftUsername: string;
   draftPassword: string;
   isSubmitting: boolean;
   authResult: AuthResult | null;
+  onUsernameChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onSubmit: () => void;
 }
 
 export default function AuthPanel({
-  hasMasterPassword,
+  hasAccount,
+  draftUsername,
   draftPassword,
   isSubmitting,
   authResult,
+  onUsernameChange,
   onPasswordChange,
   onSubmit,
 }: AuthPanelProps) {
-  const title = hasMasterPassword ? "Welcome back" : "Create your vault";
-  const description = hasMasterPassword
-    ? "Enter your master password to unlock your secure workspace."
-    : "Start by setting a master password to encrypt the vault stored in your browser.";
+  const title = hasAccount ? "Unlock your vault" : "Create your secure account";
+  const description = hasAccount
+    ? "Sign in with your username and master password to decrypt the stored vault."
+    : "Set up a username and master password to create your encrypted vault in this browser.";
   const buttonLabel = isSubmitting
     ? "Please wait..."
-    : hasMasterPassword
+    : hasAccount
       ? "Unlock vault"
-      : "Create vault";
+      : "Create account";
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
@@ -40,24 +44,24 @@ export default function AuthPanel({
             BitSecure
           </span>
           <h1 className="mt-6 max-w-xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            Password protection with a cleaner vault workflow.
+            Secure local vault access with encrypted credentials.
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-            Your vault is encrypted locally, designed for quick entry access, and ready for
-            deeper account controls as the application evolves.
+            BitSecure stores account metadata and entries in encrypted browser storage so the
+            session can be unlocked only with the correct username and master password.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Local only</p>
-              <p className="mt-2 text-lg font-medium">Encrypted browser storage</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Username based</p>
+              <p className="mt-2 text-lg font-medium">Vault access tied to your account</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Fast access</p>
-              <p className="mt-2 text-lg font-medium">Open, edit, filter and protect</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Master password</p>
+              <p className="mt-2 text-lg font-medium">Encryption key derived locally</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Responsive</p>
-              <p className="mt-2 text-lg font-medium">Built for desktop and mobile</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Reset ready</p>
+              <p className="mt-2 text-lg font-medium">Re-encrypt your vault safely</p>
             </div>
           </div>
         </section>
@@ -65,13 +69,23 @@ export default function AuthPanel({
         <Panel eyebrow="Secure access" title={title} description={description}>
           <div className="space-y-5">
             <InputField
+              id="username"
+              type="text"
+              label="Username"
+              value={draftUsername}
+              onChange={(event) => onUsernameChange(event.target.value)}
+              placeholder="Enter your username"
+              autoComplete="username"
+            />
+
+            <InputField
               id="master-password"
               type="password"
               label="Master password"
               value={draftPassword}
               onChange={(event) => onPasswordChange(event.target.value)}
               placeholder="Enter your master password"
-              autoComplete="current-password"
+              autoComplete={hasAccount ? "current-password" : "new-password"}
             />
 
             {authResult ? (

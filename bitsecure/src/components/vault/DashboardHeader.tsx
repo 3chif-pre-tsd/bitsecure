@@ -26,8 +26,8 @@ export default function DashboardHeader({
       action={
         <div className="rounded-[26px] bg-slate-950 p-5 text-white">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Signed in</p>
-          <p className="mt-1 text-lg font-semibold">{user.displayName}</p>
-          <p className="text-sm text-slate-300">{user.email}</p>
+          <p className="mt-1 text-lg font-semibold">{user.username}</p>
+          <p className="text-sm text-slate-300">Encrypted local vault session</p>
           <Button className="mt-4" variant="secondary" onClick={onLogout}>
             <Icon name="logout" className="size-4" />
             Logout

@@ -1,12 +1,20 @@
 import { ENTRY_STORAGE_KEY } from "../../constants/auth";
-import { clearActiveEncryptionKey, setMasterPassword } from "../auth/masterPasswordService";
+import {
+  clearActiveEncryptionKey,
+  login,
+  registerAccount,
+  resetMasterPassword,
+} from "../auth/masterPasswordService";
 import { addPasswordEntry, getPasswordEntries } from "./passwordEntryService";
 
 describe("passwordEntryService", () => {
   beforeEach(async () => {
     window.localStorage.clear();
     clearActiveEncryptionKey();
-    await setMasterPassword("Sup3rSecret!");
+    await registerAccount({
+      username: "alice",
+      password: "Sup3rSecret!",
+    });
   });
 
   it("adds a password entry and returns it from encrypted storage", async () => {
@@ -34,22 +42,33 @@ describe("passwordEntryService", () => {
     expect(rawStorageValue).not.toContain("octocat");
   });
 
-  it("normalizes entry values before persisting them", async () => {
+  it("keeps vault entries accessible after resetting the master password", async () => {
     await addPasswordEntry({
-      title: "  Bitbucket  ",
-      username: "  alice@example.com  ",
-      password: "trim-me-not",
-      url: "  https://bitbucket.org  ",
-      notes: "  Work repository access  ",
-    });
-    const storedEntries = await getPasswordEntries();
-
-    expect(storedEntries[0]).toMatchObject({
       title: "Bitbucket",
       username: "alice@example.com",
       password: "trim-me-not",
       url: "https://bitbucket.org",
       notes: "Work repository access",
+    });
+
+    const resetResult = await resetMasterPassword({
+      currentPassword: "Sup3rSecret!",
+      newPassword: "N3wSecret!",
+    });
+
+    clearActiveEncryptionKey();
+    const loginResult = await login({
+      username: "alice",
+      password: "N3wSecret!",
+    });
+    const storedEntries = await getPasswordEntries();
+
+    expect(resetResult.status).toBe("success");
+    expect(loginResult.status).toBe("success");
+    expect(storedEntries[0]).toMatchObject({
+      title: "Bitbucket",
+      username: "alice@example.com",
+      password: "trim-me-not",
     });
   });
 });
