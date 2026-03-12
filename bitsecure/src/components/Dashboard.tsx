@@ -10,9 +10,11 @@ import EntryPlaceholder from "./EntryPlaceholder";
 interface DashboardProps {
   user: UserProfile;
   entries: PasswordEntry[];
+  filteredEntries: PasswordEntry[];
   selectedEntry: PasswordEntry | null;
   entryDraft: PasswordEntryInput;
   entryErrors: PasswordEntryValidationErrors;
+  filterQuery: string;
   editingEntryId: string | null;
   isSavingEntry: boolean;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
@@ -21,6 +23,7 @@ interface DashboardProps {
   onEditEntry: (entry: PasswordEntry) => void;
   onCancelEdit: () => void;
   onDeleteEntry: (entryId: string) => void;
+  onFilterQueryChange: (value: string) => void;
   onLogout: () => void;
 }
 
@@ -34,9 +37,11 @@ function formatDateTime(value: string): string {
 export default function Dashboard({
   user,
   entries,
+  filteredEntries,
   selectedEntry,
   entryDraft,
   entryErrors,
+  filterQuery,
   editingEntryId,
   isSavingEntry,
   onEntryDraftChange,
@@ -45,6 +50,7 @@ export default function Dashboard({
   onEditEntry,
   onCancelEdit,
   onDeleteEntry,
+  onFilterQueryChange,
   onLogout,
 }: DashboardProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -90,8 +96,8 @@ export default function Dashboard({
           <div className="col-12 col-md-4">
             <div className="card h-100">
               <div className="card-body">
-                <h2 className="h6 text-uppercase text-body-secondary">Selected entry</h2>
-                <p className="display-6 mb-0">{selectedEntry ? 1 : 0}</p>
+                <h2 className="h6 text-uppercase text-body-secondary">Visible after filter</h2>
+                <p className="display-6 mb-0">{filteredEntries.length}</p>
               </div>
             </div>
           </div>
@@ -103,12 +109,24 @@ export default function Dashboard({
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h2 className="h5 card-title mb-0">Entries</h2>
-                  <span className="badge text-bg-light">{entries.length}</span>
+                  <span className="badge text-bg-light">{filteredEntries.length}</span>
                 </div>
 
+                <label htmlFor="entry-filter" className="form-label">
+                  Filter entries
+                </label>
+                <input
+                  id="entry-filter"
+                  type="search"
+                  className="form-control mb-3"
+                  value={filterQuery}
+                  onChange={(event) => onFilterQueryChange(event.target.value)}
+                  placeholder="Search title, username, URL or notes"
+                />
+
                 <div className="list-group">
-                  {entries.length > 0 ? (
-                    entries.map((entry) => (
+                  {filteredEntries.length > 0 ? (
+                    filteredEntries.map((entry) => (
                       <button
                         key={entry.id}
                         type="button"
@@ -131,7 +149,7 @@ export default function Dashboard({
                     ))
                   ) : (
                     <div className="border rounded p-3 text-body-secondary">
-                      No entries have been stored yet.
+                      No entries match the current filter.
                     </div>
                   )}
                 </div>

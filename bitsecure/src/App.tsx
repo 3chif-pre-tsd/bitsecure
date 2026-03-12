@@ -40,6 +40,7 @@ export default function App() {
   const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
   const [entryErrors, setEntryErrors] = useState<PasswordEntryValidationErrors>({});
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [filterQuery, setFilterQuery] = useState("");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
 
@@ -164,12 +165,27 @@ export default function App() {
     setAuthResult(null);
     setEntries([]);
     setSelectedEntryId(null);
+    setFilterQuery("");
     setEditingEntryId(null);
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
   }
 
-  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
+  const filteredEntries = entries.filter((entry) => {
+    const normalizedQuery = filterQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return [entry.title, entry.username, entry.url, entry.notes].some((value) =>
+      value.toLowerCase().includes(normalizedQuery),
+    );
+  });
+
+  const selectedEntry = filteredEntries.find((entry) => entry.id === selectedEntryId) ??
+    entries.find((entry) => entry.id === selectedEntryId) ??
+    null;
 
   return (
     <>
@@ -186,9 +202,11 @@ export default function App() {
         <Dashboard
           user={DEFAULT_USER}
           entries={entries}
+          filteredEntries={filteredEntries}
           selectedEntry={selectedEntry}
           entryDraft={entryDraft}
           entryErrors={entryErrors}
+          filterQuery={filterQuery}
           editingEntryId={editingEntryId}
           isSavingEntry={isSavingEntry}
           onEntryDraftChange={handleEntryDraftChange}
@@ -197,6 +215,7 @@ export default function App() {
           onEditEntry={handleEditEntry}
           onCancelEdit={handleCancelEdit}
           onDeleteEntry={handleDeleteEntry}
+          onFilterQueryChange={setFilterQuery}
           onLogout={handleLogout}
         />
       )}
