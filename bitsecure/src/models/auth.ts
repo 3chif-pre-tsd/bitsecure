@@ -6,7 +6,9 @@ export interface AuthResult {
 }
 
 export interface StoredMasterPassword {
-  value: string;
+  salt: string;
+  iv: string;
+  verifier: string;
 }
 
 export interface UserProfile {

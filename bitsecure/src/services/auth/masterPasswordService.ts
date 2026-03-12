@@ -1,10 +1,20 @@
 import { AUTH_STORAGE_KEY } from "../../constants/auth";
 import type { AuthResult, StoredMasterPassword } from "../../models/auth";
 import {
+  createRandomBase64,
+  decryptText,
+  deriveEncryptionKey,
+  encryptText,
+} from "../security/cryptoService";
+import {
   readFromStorage,
   removeFromStorage,
   writeToStorage,
 } from "../storage/localStorage";
+
+const MASTER_PASSWORD_VERIFIER = "BitSecure master password verifier";
+
+let activeEncryptionKey: CryptoKey | null = null;
 
 function readStoredMasterPassword(): StoredMasterPassword | null {
   const rawValue = readFromStorage(AUTH_STORAGE_KEY);
@@ -16,13 +26,19 @@ function readStoredMasterPassword(): StoredMasterPassword | null {
   try {
     const parsedValue = JSON.parse(rawValue) as Partial<StoredMasterPassword>;
 
-    if (typeof parsedValue.value !== "string") {
+    if (
+      typeof parsedValue.salt !== "string" ||
+      typeof parsedValue.iv !== "string" ||
+      typeof parsedValue.verifier !== "string"
+    ) {
       removeFromStorage(AUTH_STORAGE_KEY);
       return null;
     }
 
     return {
-      value: parsedValue.value,
+      salt: parsedValue.salt,
+      iv: parsedValue.iv,
+      verifier: parsedValue.verifier,
     };
   } catch {
     removeFromStorage(AUTH_STORAGE_KEY);
@@ -49,6 +65,14 @@ export function hasMasterPassword(): boolean {
   return readStoredMasterPassword() !== null;
 }
 
+export function getActiveEncryptionKey(): CryptoKey | null {
+  return activeEncryptionKey;
+}
+
+export function clearActiveEncryptionKey(): void {
+  activeEncryptionKey = null;
+}
+
 export async function setMasterPassword(masterPassword: string): Promise<AuthResult> {
   const validationResult = validatePasswordInput(masterPassword);
 
@@ -56,9 +80,16 @@ export async function setMasterPassword(masterPassword: string): Promise<AuthRes
     return validationResult;
   }
 
+  const salt = createRandomBase64(16);
+  const encryptionKey = await deriveEncryptionKey(masterPassword, salt);
+  const encryptedVerifier = await encryptText(MASTER_PASSWORD_VERIFIER, encryptionKey);
+
   saveStoredMasterPassword({
-    value: masterPassword,
+    salt,
+    iv: encryptedVerifier.iv,
+    verifier: encryptedVerifier.payload,
   });
+  activeEncryptionKey = encryptionKey;
 
   return {
     status: "success",
@@ -82,15 +113,34 @@ export async function validateMasterPassword(masterPassword: string): Promise<Au
     };
   }
 
-  if (masterPassword !== storedMasterPassword.value) {
+  try {
+    const encryptionKey = await deriveEncryptionKey(
+      masterPassword,
+      storedMasterPassword.salt,
+    );
+    const verifier = await decryptText(
+      storedMasterPassword.verifier,
+      storedMasterPassword.iv,
+      encryptionKey,
+    );
+
+    if (verifier !== MASTER_PASSWORD_VERIFIER) {
+      return {
+        status: "error",
+        message: "Master password is invalid.",
+      };
+    }
+
+    activeEncryptionKey = encryptionKey;
+
+    return {
+      status: "success",
+      message: "Login successful.",
+    };
+  } catch {
     return {
       status: "error",
       message: "Master password is invalid.",
     };
   }
-
-  return {
-    status: "success",
-    message: "Login successful.",
-  };
 }

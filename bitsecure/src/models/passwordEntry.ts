@@ -4,6 +4,9 @@ export interface PasswordEntry {
   username: string;
   password: string;
   url: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PasswordEntryInput {
@@ -11,6 +14,7 @@ export interface PasswordEntryInput {
   username: string;
   password: string;
   url: string;
+  notes: string;
 }
 
 export interface PasswordEntryValidationErrors {
@@ -18,4 +22,9 @@ export interface PasswordEntryValidationErrors {
   username?: string;
   password?: string;
   url?: string;
+}
+
+export interface StoredEncryptedEntries {
+  iv: string;
+  payload: string;
 }
