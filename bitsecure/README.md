@@ -1,19 +1,27 @@
 # BitSecure
 
-BitSecure is a React and Vite password manager prototype with a master-password login,
-encrypted local storage, and entry management features.
+BitSecure is a React and Vite password manager prototype with local encrypted storage,
+Tailwind-based UI, username + master-password authentication, and modular vault management.
 
-## Implemented issues
+## Current feature set
 
-- `#1` Login with master password
-- `#2` Dashboard view
-- `#3` Add password entry
-- `#4` Open entry details
-- `#5` Show and hide entry password
-- `#6` Edit entry
-- `#7` Delete entry
-- `#8` Filter entries
-- `#9` Encrypted storage
+- Username + master-password login
+- Master-password reset with vault re-encryption
+- Encrypted browser storage for account metadata and entries
+- Open, edit, delete, and inspect password entries
+- Search, filter, and sort vault entries
+- Password visibility toggle and copy-to-clipboard action
+- Random password generation in the entry editor
+- Creation and modification timestamps
+
+## Project structure
+
+- `src/components/auth`: authentication-specific UI
+- `src/components/ui`: shared visual primitives
+- `src/components/vault`: dashboard and vault panels
+- `src/hooks`: state orchestration for auth and vault behavior
+- `src/services`: auth, entry, crypto, and storage logic
+- `src/utils`: small reusable helpers
 
 ## Development
 

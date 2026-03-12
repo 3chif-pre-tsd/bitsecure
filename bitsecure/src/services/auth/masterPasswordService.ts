@@ -274,7 +274,7 @@ export async function resetMasterPassword(
   } catch {
     return {
       status: "error",
-      message: "Master password could not be updated.",
+      message: "Current master password is invalid.",
     };
   }
 }

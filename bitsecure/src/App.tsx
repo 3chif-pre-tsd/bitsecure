@@ -1,366 +1,65 @@
-import { useEffect, useState } from "react";
 import AuthPanel from "./components/AuthPanel";
 import Dashboard from "./components/Dashboard";
-import type { AuthResult, UserProfile } from "./models/auth";
-import type {
-  PasswordEntry,
-  PasswordEntryFilterOption,
-  PasswordEntryInput,
-  PasswordEntrySortOption,
-  PasswordEntryValidationErrors,
-} from "./models/passwordEntry";
-import {
-  clearActiveEncryptionKey,
-  getActiveUserProfile,
-  hasConfiguredAccount,
-  login,
-  registerAccount,
-  resetMasterPassword,
-} from "./services/auth/masterPasswordService";
-import {
-  addPasswordEntry,
-  deletePasswordEntry,
-  getPasswordEntries,
-  updatePasswordEntry,
-} from "./services/entries/passwordEntryService";
-import { validatePasswordEntry } from "./services/entries/entryValidation";
-import { generateRandomPassword } from "./utils/passwords";
-
-const EMPTY_ENTRY_DRAFT: PasswordEntryInput = {
-  title: "",
-  username: "",
-  password: "",
-  url: "",
-  notes: "",
-};
-
-const EMPTY_RESET_DRAFT = {
-  currentPassword: "",
-  newPassword: "",
-  confirmPassword: "",
-};
+import { useAuth } from "./hooks/useAuth";
+import { useVault } from "./hooks/useVault";
 
 export default function App() {
-  const [hasAccount, setHasAccount] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [draftUsername, setDraftUsername] = useState("");
-  const [draftPassword, setDraftPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authResult, setAuthResult] = useState<AuthResult | null>(null);
-  const [entries, setEntries] = useState<PasswordEntry[]>([]);
-  const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
-  const [entryErrors, setEntryErrors] = useState<PasswordEntryValidationErrors>({});
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterOption, setFilterOption] =
-    useState<PasswordEntryFilterOption>("all");
-  const [sortOption, setSortOption] = useState<PasswordEntrySortOption>("updated-desc");
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [isSavingEntry, setIsSavingEntry] = useState(false);
-  const [resetDraft, setResetDraft] = useState(EMPTY_RESET_DRAFT);
-  const [resetErrors, setResetErrors] = useState<{
-    currentPassword?: string;
-    newPassword?: string;
-    confirmPassword?: string;
-  }>({});
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [resetResult, setResetResult] = useState<AuthResult | null>(null);
+  const auth = useAuth();
+  const vault = useVault(auth.isAuthenticated);
 
-  useEffect(() => {
-    setHasAccount(hasConfiguredAccount());
-  }, []);
-
-  async function loadEntries(nextSelectedEntryId?: string | null) {
-    try {
-      const storedEntries = await getPasswordEntries();
-
-      setEntries(storedEntries);
-      setSelectedEntryId((currentSelectedEntryId) => {
-        const requestedEntryId = nextSelectedEntryId ?? currentSelectedEntryId;
-
-        if (!requestedEntryId) {
-          return storedEntries[0]?.id ?? null;
-        }
-
-        return storedEntries.some((entry) => entry.id === requestedEntryId)
-          ? requestedEntryId
-          : storedEntries[0]?.id ?? null;
-      });
-    } catch {
-      setEntries([]);
-      setSelectedEntryId(null);
-    }
-  }
-
-  async function handleAuthSubmit() {
-    setIsSubmitting(true);
-
-    const result = hasAccount
-      ? await login({
-          username: draftUsername,
-          password: draftPassword,
-        })
-      : await registerAccount({
-          username: draftUsername,
-          password: draftPassword,
-        });
-
-    setAuthResult(result);
-    setIsSubmitting(false);
-
-    if (result.status === "success") {
-      setHasAccount(true);
-      setIsAuthenticated(true);
-      setDraftPassword("");
-      const activeUser = getActiveUserProfile();
-      setCurrentUser(activeUser);
-      await loadEntries();
-    }
-  }
-
-  function handleEntryDraftChange(field: keyof PasswordEntryInput, value: string) {
-    setEntryDraft((currentDraft) => ({
-      ...currentDraft,
-      [field]: value,
-    }));
-    setEntryErrors((currentErrors) => ({
-      ...currentErrors,
-      [field]: undefined,
-    }));
-  }
-
-  function handleGeneratePassword() {
-    handleEntryDraftChange("password", generateRandomPassword());
-  }
-
-  async function handleSaveEntry() {
-    const validationErrors = validatePasswordEntry(entryDraft);
-
-    if (Object.keys(validationErrors).length > 0) {
-      setEntryErrors(validationErrors);
-      return;
-    }
-
-    setIsSavingEntry(true);
-
-    try {
-      if (editingEntryId) {
-        const updatedEntry = await updatePasswordEntry(editingEntryId, entryDraft);
-
-        if (updatedEntry) {
-          await loadEntries(updatedEntry.id);
-        }
-      } else {
-        const createdEntry = await addPasswordEntry(entryDraft);
-        await loadEntries(createdEntry.id);
-      }
-
-      setEntryDraft(EMPTY_ENTRY_DRAFT);
-      setEntryErrors({});
-      setEditingEntryId(null);
-    } finally {
-      setIsSavingEntry(false);
-    }
-  }
-
-  function handleSelectEntry(entryId: string) {
-    setSelectedEntryId(entryId);
-  }
-
-  function handleEditEntry(entry: PasswordEntry) {
-    setEditingEntryId(entry.id);
-    setSelectedEntryId(entry.id);
-    setEntryDraft({
-      title: entry.title,
-      username: entry.username,
-      password: entry.password,
-      url: entry.url,
-      notes: entry.notes,
-    });
-    setEntryErrors({});
-  }
-
-  function handleCancelEdit() {
-    setEditingEntryId(null);
-    setEntryDraft(EMPTY_ENTRY_DRAFT);
-    setEntryErrors({});
-  }
-
-  async function handleDeleteEntry(entryId: string) {
-    setIsSavingEntry(true);
-
-    try {
-      const wasDeleted = await deletePasswordEntry(entryId);
-
-      if (wasDeleted) {
-        await loadEntries();
-        if (editingEntryId === entryId) {
-          handleCancelEdit();
-        }
-      }
-    } finally {
-      setIsSavingEntry(false);
-    }
-  }
-
-  function handleResetDraftChange(
-    field: "currentPassword" | "newPassword" | "confirmPassword",
-    value: string,
-  ) {
-    setResetDraft((currentDraft) => ({
-      ...currentDraft,
-      [field]: value,
-    }));
-    setResetErrors((currentErrors) => ({
-      ...currentErrors,
-      [field]: undefined,
-    }));
-  }
-
-  async function handleResetMasterPassword() {
-    const nextErrors: typeof resetErrors = {};
-
-    if (!resetDraft.currentPassword.trim()) {
-      nextErrors.currentPassword = "Current master password is required.";
-    }
-
-    if (!resetDraft.newPassword.trim()) {
-      nextErrors.newPassword = "New master password is required.";
-    }
-
-    if (resetDraft.newPassword === resetDraft.currentPassword && resetDraft.newPassword.trim()) {
-      nextErrors.newPassword = "New master password must be different.";
-    }
-
-    if (resetDraft.confirmPassword !== resetDraft.newPassword) {
-      nextErrors.confirmPassword = "Confirmation must match the new password.";
-    }
-
-    if (Object.keys(nextErrors).length > 0) {
-      setResetErrors(nextErrors);
-      return;
-    }
-
-    setIsResettingPassword(true);
-    const result = await resetMasterPassword({
-      currentPassword: resetDraft.currentPassword,
-      newPassword: resetDraft.newPassword,
-    });
-    setResetResult(result);
-    setIsResettingPassword(false);
-
-    if (result.status === "success") {
-      setResetDraft(EMPTY_RESET_DRAFT);
-      setResetErrors({});
-    }
-  }
-
-  function handleLogout() {
-    clearActiveEncryptionKey();
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-    setDraftUsername("");
-    setDraftPassword("");
-    setAuthResult(null);
-    setEntries([]);
-    setSelectedEntryId(null);
-    setSearchQuery("");
-    setFilterOption("all");
-    setSortOption("updated-desc");
-    setEditingEntryId(null);
-    setEntryDraft(EMPTY_ENTRY_DRAFT);
-    setEntryErrors({});
-    setResetDraft(EMPTY_RESET_DRAFT);
-    setResetErrors({});
-    setResetResult(null);
-  }
-
-  const visibleEntries = [...entries]
-    .filter((entry) => {
-      const normalizedQuery = searchQuery.trim().toLowerCase();
-
-      if (
-        normalizedQuery &&
-        ![entry.title, entry.username, entry.url, entry.notes].some((value) =>
-          value.toLowerCase().includes(normalizedQuery),
-        )
-      ) {
-        return false;
-      }
-
-      if (filterOption === "with-url") {
-        return Boolean(entry.url);
-      }
-
-      if (filterOption === "with-notes") {
-        return Boolean(entry.notes);
-      }
-
-      return true;
-    })
-    .sort((leftEntry, rightEntry) => {
-      if (sortOption === "title-asc") {
-        return leftEntry.title.localeCompare(rightEntry.title);
-      }
-
-      const leftValue =
-        sortOption === "created-desc" ? leftEntry.createdAt : leftEntry.updatedAt;
-      const rightValue =
-        sortOption === "created-desc" ? rightEntry.createdAt : rightEntry.updatedAt;
-
-      return new Date(rightValue).getTime() - new Date(leftValue).getTime();
-    });
-
-  const selectedEntry = visibleEntries.find((entry) => entry.id === selectedEntryId) ??
-    entries.find((entry) => entry.id === selectedEntryId) ??
-    null;
-
-  if (!isAuthenticated || !currentUser) {
+  if (!auth.isAuthenticated || !auth.currentUser) {
     return (
       <AuthPanel
-        hasAccount={hasAccount}
-        draftUsername={draftUsername}
-        draftPassword={draftPassword}
-        isSubmitting={isSubmitting}
-        authResult={authResult}
-        onUsernameChange={setDraftUsername}
-        onPasswordChange={setDraftPassword}
-        onSubmit={handleAuthSubmit}
+        hasAccount={auth.hasAccount}
+        draftUsername={auth.draftUsername}
+        draftPassword={auth.draftPassword}
+        isSubmitting={auth.isSubmitting}
+        authResult={auth.authResult}
+        onUsernameChange={auth.setDraftUsername}
+        onPasswordChange={auth.setDraftPassword}
+        onSubmit={() => {
+          void auth.submitAuth();
+        }}
       />
     );
   }
 
   return (
     <Dashboard
-      user={currentUser}
-      entries={entries}
-      visibleEntries={visibleEntries}
-      selectedEntry={selectedEntry}
-      entryDraft={entryDraft}
-      entryErrors={entryErrors}
-      searchQuery={searchQuery}
-      filterOption={filterOption}
-      sortOption={sortOption}
-      editingEntryId={editingEntryId}
-      isSavingEntry={isSavingEntry}
-      resetDraft={resetDraft}
-      resetErrors={resetErrors}
-      isResettingPassword={isResettingPassword}
-      resetResult={resetResult}
-      onEntryDraftChange={handleEntryDraftChange}
-      onGeneratePassword={handleGeneratePassword}
-      onSaveEntry={handleSaveEntry}
-      onSelectEntry={handleSelectEntry}
-      onEditEntry={handleEditEntry}
-      onCancelEdit={handleCancelEdit}
-      onDeleteEntry={handleDeleteEntry}
-      onSearchQueryChange={setSearchQuery}
-      onFilterOptionChange={setFilterOption}
-      onSortOptionChange={setSortOption}
-      onResetDraftChange={handleResetDraftChange}
-      onResetMasterPassword={handleResetMasterPassword}
-      onLogout={handleLogout}
+      user={auth.currentUser}
+      entries={vault.entries}
+      visibleEntries={vault.visibleEntries}
+      selectedEntry={vault.selectedEntry}
+      entryDraft={vault.entryDraft}
+      entryErrors={vault.entryErrors}
+      searchQuery={vault.searchQuery}
+      filterOption={vault.filterOption}
+      sortOption={vault.sortOption}
+      editingEntryId={vault.editingEntryId}
+      isSavingEntry={vault.isSavingEntry}
+      resetDraft={auth.resetDraft}
+      resetErrors={auth.resetErrors}
+      isResettingPassword={auth.isResettingPassword}
+      resetResult={auth.resetResult}
+      onEntryDraftChange={vault.updateEntryDraft}
+      onGeneratePassword={vault.generatePassword}
+      onSaveEntry={() => {
+        void vault.saveEntry();
+      }}
+      onSelectEntry={vault.setSelectedEntryId}
+      onEditEntry={vault.editEntry}
+      onCancelEdit={vault.cancelEdit}
+      onDeleteEntry={(entryId) => {
+        void vault.removeEntry(entryId);
+      }}
+      onSearchQueryChange={vault.setSearchQuery}
+      onFilterOptionChange={vault.setFilterOption}
+      onSortOptionChange={vault.setSortOption}
+      onResetDraftChange={auth.updateResetDraft}
+      onResetMasterPassword={() => {
+        void auth.submitResetMasterPassword();
+      }}
+      onLogout={auth.logout}
     />
   );
 }
