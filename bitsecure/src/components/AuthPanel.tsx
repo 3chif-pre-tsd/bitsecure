@@ -1,4 +1,8 @@
 import type { AuthResult } from "../models/auth";
+import Button from "./ui/Button";
+import { InputField } from "./ui/Field";
+import Icon from "./ui/Icon";
+import Panel from "./ui/Panel";
 
 interface AuthPanelProps {
   hasMasterPassword: boolean;
@@ -31,7 +35,8 @@ export default function AuthPanel({
     <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
       <div className="grid w-full max-w-5xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-[32px] border border-white/60 bg-slate-950 px-8 py-10 text-white shadow-2xl shadow-slate-950/20">
-          <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+            <Icon name="vault" className="size-4" />
             BitSecure
           </span>
           <h1 className="mt-6 max-w-xl text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -39,7 +44,7 @@ export default function AuthPanel({
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
             Your vault is encrypted locally, designed for quick entry access, and ready for
-            deeper account controls in the next step of the refactor.
+            deeper account controls as the application evolves.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -57,28 +62,17 @@ export default function AuthPanel({
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/60 backdrop-blur">
-          <div className="space-y-2">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-700">
-              Secure access
-            </p>
-            <h2 className="text-3xl font-semibold tracking-tight text-slate-950">{title}</h2>
-            <p className="text-sm leading-6 text-slate-600">{description}</p>
-          </div>
-
-          <div className="mt-8 space-y-4">
-            <label htmlFor="master-password" className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">Master password</span>
-              <input
-                id="master-password"
-                type="password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-950 outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
-                value={draftPassword}
-                onChange={(event) => onPasswordChange(event.target.value)}
-                placeholder="Enter your master password"
-                autoComplete="current-password"
-              />
-            </label>
+        <Panel eyebrow="Secure access" title={title} description={description}>
+          <div className="space-y-5">
+            <InputField
+              id="master-password"
+              type="password"
+              label="Master password"
+              value={draftPassword}
+              onChange={(event) => onPasswordChange(event.target.value)}
+              placeholder="Enter your master password"
+              autoComplete="current-password"
+            />
 
             {authResult ? (
               <div
@@ -93,16 +87,12 @@ export default function AuthPanel({
               </div>
             ) : null}
 
-            <button
-              type="button"
-              className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-              onClick={onSubmit}
-              disabled={isSubmitting}
-            >
+            <Button fullWidth onClick={onSubmit} disabled={isSubmitting}>
+              <Icon name="vault" className="size-4" />
               {buttonLabel}
-            </button>
+            </Button>
           </div>
-        </section>
+        </Panel>
       </div>
     </main>
   );
