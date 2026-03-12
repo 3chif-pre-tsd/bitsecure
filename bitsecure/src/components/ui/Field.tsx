@@ -1,4 +1,8 @@
-import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type {
+  InputHTMLAttributes,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 import { mergeClasses } from "../../utils/mergeClasses";
 
 function getFieldClasses(hasError?: boolean): string {
@@ -47,6 +51,33 @@ export function TextareaField({
         className={mergeClasses(getFieldClasses(Boolean(error)), "min-h-32 resize-y", className)}
         {...props}
       />
+      {error ? <span className="text-xs text-rose-600">{error}</span> : null}
+      {!error && hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
+    </label>
+  );
+}
+
+interface SelectFieldProps extends FieldProps, SelectHTMLAttributes<HTMLSelectElement> {}
+
+export function SelectField({
+  label,
+  error,
+  hint,
+  className,
+  id,
+  children,
+  ...props
+}: SelectFieldProps) {
+  return (
+    <label htmlFor={id} className="block space-y-2">
+      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <select
+        id={id}
+        className={mergeClasses(getFieldClasses(Boolean(error)), className)}
+        {...props}
+      >
+        {children}
+      </select>
       {error ? <span className="text-xs text-rose-600">{error}</span> : null}
       {!error && hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
     </label>

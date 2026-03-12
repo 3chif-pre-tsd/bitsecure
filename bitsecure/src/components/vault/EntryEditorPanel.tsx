@@ -15,6 +15,7 @@ interface EntryEditorPanelProps {
   editingEntryId: string | null;
   isSavingEntry: boolean;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
+  onGeneratePassword: () => void;
   onSaveEntry: () => void;
   onCancelEdit: () => void;
 }
@@ -26,6 +27,7 @@ export default function EntryEditorPanel({
   editingEntryId,
   isSavingEntry,
   onEntryDraftChange,
+  onGeneratePassword,
   onSaveEntry,
   onCancelEdit,
 }: EntryEditorPanelProps) {
@@ -71,15 +73,22 @@ export default function EntryEditorPanel({
             placeholder="octocat"
             error={entryErrors.username}
           />
-          <InputField
-            id="entry-password"
-            type="password"
-            label="Password"
-            value={entryDraft.password}
-            onChange={(event) => onEntryDraftChange("password", event.target.value)}
-            placeholder="Password"
-            error={entryErrors.password}
-          />
+          <div className="space-y-2">
+            <InputField
+              id="entry-password"
+              type="text"
+              label="Password"
+              value={entryDraft.password}
+              onChange={(event) => onEntryDraftChange("password", event.target.value)}
+              placeholder="Password"
+              error={entryErrors.password}
+              hint="Generate a strong random password when needed."
+            />
+            <Button variant="secondary" onClick={onGeneratePassword}>
+              <Icon name="plus" className="size-4" />
+              Generate random password
+            </Button>
+          </div>
         </div>
 
         <InputField

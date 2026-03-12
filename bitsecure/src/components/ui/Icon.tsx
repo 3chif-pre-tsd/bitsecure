@@ -9,7 +9,8 @@ type IconName =
   | "logout"
   | "vault"
   | "plus"
-  | "link";
+  | "link"
+  | "copy";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
@@ -34,6 +35,8 @@ const PATHS: Record<IconName, string> = {
     "M11.25 4h1.5v7.25H20v1.5h-7.25V20h-1.5v-7.25H4v-1.5h7.25V4Z",
   link:
     "M9.76 14.24a3 3 0 0 1 0-4.24l2.47-2.47 1.06 1.06-2.47 2.47a1.5 1.5 0 0 0 2.12 2.12l2.47-2.47 1.06 1.06-2.47 2.47a3 3 0 0 1-4.24 0Zm4.48-4.48a1.5 1.5 0 0 0-2.12-2.12L9.65 10.1 8.59 9.04l2.47-2.47a3 3 0 0 1 4.24 4.24l-2.47 2.47-1.06-1.06 2.47-2.47Z",
+  copy:
+    "M8 4.5A2.5 2.5 0 0 1 10.5 2h8A2.5 2.5 0 0 1 21 4.5v8a2.5 2.5 0 0 1-2.5 2.5H17v-1.5h1.5a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-8a1 1 0 0 0-1 1V6H8V4.5ZM5.5 7A2.5 2.5 0 0 0 3 9.5v8A2.5 2.5 0 0 0 5.5 20h8a2.5 2.5 0 0 0 2.5-2.5v-8A2.5 2.5 0 0 0 13.5 7h-8Zm0 1.5h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z",
 };
 
 export default function Icon({ name, className, ...props }: IconProps) {

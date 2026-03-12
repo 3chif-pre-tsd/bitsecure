@@ -4,7 +4,9 @@ import Dashboard from "./components/Dashboard";
 import type { AuthResult, UserProfile } from "./models/auth";
 import type {
   PasswordEntry,
+  PasswordEntryFilterOption,
   PasswordEntryInput,
+  PasswordEntrySortOption,
   PasswordEntryValidationErrors,
 } from "./models/passwordEntry";
 import {
@@ -22,6 +24,7 @@ import {
   updatePasswordEntry,
 } from "./services/entries/passwordEntryService";
 import { validatePasswordEntry } from "./services/entries/entryValidation";
+import { generateRandomPassword } from "./utils/passwords";
 
 const EMPTY_ENTRY_DRAFT: PasswordEntryInput = {
   title: "",
@@ -49,7 +52,10 @@ export default function App() {
   const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
   const [entryErrors, setEntryErrors] = useState<PasswordEntryValidationErrors>({});
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
-  const [filterQuery, setFilterQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterOption, setFilterOption] =
+    useState<PasswordEntryFilterOption>("all");
+  const [sortOption, setSortOption] = useState<PasswordEntrySortOption>("updated-desc");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
   const [resetDraft, setResetDraft] = useState(EMPTY_RESET_DRAFT);
@@ -122,6 +128,10 @@ export default function App() {
       ...currentErrors,
       [field]: undefined,
     }));
+  }
+
+  function handleGeneratePassword() {
+    handleEntryDraftChange("password", generateRandomPassword());
   }
 
   async function handleSaveEntry() {
@@ -255,7 +265,9 @@ export default function App() {
     setAuthResult(null);
     setEntries([]);
     setSelectedEntryId(null);
-    setFilterQuery("");
+    setSearchQuery("");
+    setFilterOption("all");
+    setSortOption("updated-desc");
     setEditingEntryId(null);
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
@@ -264,19 +276,43 @@ export default function App() {
     setResetResult(null);
   }
 
-  const filteredEntries = entries.filter((entry) => {
-    const normalizedQuery = filterQuery.trim().toLowerCase();
+  const visibleEntries = [...entries]
+    .filter((entry) => {
+      const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    if (!normalizedQuery) {
+      if (
+        normalizedQuery &&
+        ![entry.title, entry.username, entry.url, entry.notes].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        )
+      ) {
+        return false;
+      }
+
+      if (filterOption === "with-url") {
+        return Boolean(entry.url);
+      }
+
+      if (filterOption === "with-notes") {
+        return Boolean(entry.notes);
+      }
+
       return true;
-    }
+    })
+    .sort((leftEntry, rightEntry) => {
+      if (sortOption === "title-asc") {
+        return leftEntry.title.localeCompare(rightEntry.title);
+      }
 
-    return [entry.title, entry.username, entry.url, entry.notes].some((value) =>
-      value.toLowerCase().includes(normalizedQuery),
-    );
-  });
+      const leftValue =
+        sortOption === "created-desc" ? leftEntry.createdAt : leftEntry.updatedAt;
+      const rightValue =
+        sortOption === "created-desc" ? rightEntry.createdAt : rightEntry.updatedAt;
 
-  const selectedEntry = filteredEntries.find((entry) => entry.id === selectedEntryId) ??
+      return new Date(rightValue).getTime() - new Date(leftValue).getTime();
+    });
+
+  const selectedEntry = visibleEntries.find((entry) => entry.id === selectedEntryId) ??
     entries.find((entry) => entry.id === selectedEntryId) ??
     null;
 
@@ -299,11 +335,13 @@ export default function App() {
     <Dashboard
       user={currentUser}
       entries={entries}
-      filteredEntries={filteredEntries}
+      visibleEntries={visibleEntries}
       selectedEntry={selectedEntry}
       entryDraft={entryDraft}
       entryErrors={entryErrors}
-      filterQuery={filterQuery}
+      searchQuery={searchQuery}
+      filterOption={filterOption}
+      sortOption={sortOption}
       editingEntryId={editingEntryId}
       isSavingEntry={isSavingEntry}
       resetDraft={resetDraft}
@@ -311,12 +349,15 @@ export default function App() {
       isResettingPassword={isResettingPassword}
       resetResult={resetResult}
       onEntryDraftChange={handleEntryDraftChange}
+      onGeneratePassword={handleGeneratePassword}
       onSaveEntry={handleSaveEntry}
       onSelectEntry={handleSelectEntry}
       onEditEntry={handleEditEntry}
       onCancelEdit={handleCancelEdit}
       onDeleteEntry={handleDeleteEntry}
-      onFilterQueryChange={setFilterQuery}
+      onSearchQueryChange={setSearchQuery}
+      onFilterOptionChange={setFilterOption}
+      onSortOptionChange={setSortOption}
       onResetDraftChange={handleResetDraftChange}
       onResetMasterPassword={handleResetMasterPassword}
       onLogout={handleLogout}

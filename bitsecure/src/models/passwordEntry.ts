@@ -1,3 +1,6 @@
+export type PasswordEntryFilterOption = "all" | "with-url" | "with-notes";
+export type PasswordEntrySortOption = "updated-desc" | "created-desc" | "title-asc";
+
 export interface PasswordEntry {
   id: string;
   title: string;

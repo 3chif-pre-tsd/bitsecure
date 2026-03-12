@@ -1,14 +1,22 @@
-import type { PasswordEntry } from "../../models/passwordEntry";
-import Panel from "../ui/Panel";
-import { InputField } from "../ui/Field";
+import type {
+  PasswordEntry,
+  PasswordEntryFilterOption,
+  PasswordEntrySortOption,
+} from "../../models/passwordEntry";
+import { InputField, SelectField } from "../ui/Field";
 import Icon from "../ui/Icon";
+import Panel from "../ui/Panel";
 import { mergeClasses } from "../../utils/mergeClasses";
 
 interface EntryListPanelProps {
   entries: PasswordEntry[];
   selectedEntryId: string | null;
-  filterQuery: string;
-  onFilterQueryChange: (value: string) => void;
+  searchQuery: string;
+  filterOption: PasswordEntryFilterOption;
+  sortOption: PasswordEntrySortOption;
+  onSearchQueryChange: (value: string) => void;
+  onFilterOptionChange: (value: PasswordEntryFilterOption) => void;
+  onSortOptionChange: (value: PasswordEntrySortOption) => void;
   onSelectEntry: (entryId: string) => void;
   onResetPasswordVisibility: () => void;
 }
@@ -16,8 +24,12 @@ interface EntryListPanelProps {
 export default function EntryListPanel({
   entries,
   selectedEntryId,
-  filterQuery,
-  onFilterQueryChange,
+  searchQuery,
+  filterOption,
+  sortOption,
+  onSearchQueryChange,
+  onFilterOptionChange,
+  onSortOptionChange,
   onSelectEntry,
   onResetPasswordVisibility,
 }: EntryListPanelProps) {
@@ -25,7 +37,7 @@ export default function EntryListPanel({
     <Panel
       eyebrow="Vault list"
       title="Entries"
-      description="Select an entry to inspect its details or prepare it for editing."
+      description="Search, filter, and sort the current vault before opening a record."
       action={
         <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
           {entries.length} items
@@ -39,13 +51,41 @@ export default function EntryListPanel({
             className="pointer-events-none absolute left-4 top-[46px] size-4 text-slate-400"
           />
           <InputField
-            id="entry-filter"
+            id="entry-search"
             label="Search entries"
             placeholder="Search title, username, URL or notes"
-            value={filterQuery}
-            onChange={(event) => onFilterQueryChange(event.target.value)}
+            value={searchQuery}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
             className="pl-11"
           />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            id="entry-filter"
+            label="Filter"
+            value={filterOption}
+            onChange={(event) =>
+              onFilterOptionChange(event.target.value as PasswordEntryFilterOption)
+            }
+          >
+            <option value="all">All entries</option>
+            <option value="with-url">Only with URL</option>
+            <option value="with-notes">Only with notes</option>
+          </SelectField>
+
+          <SelectField
+            id="entry-sort"
+            label="Sort"
+            value={sortOption}
+            onChange={(event) =>
+              onSortOptionChange(event.target.value as PasswordEntrySortOption)
+            }
+          >
+            <option value="updated-desc">Recently updated</option>
+            <option value="created-desc">Recently created</option>
+            <option value="title-asc">Title A-Z</option>
+          </SelectField>
         </div>
 
         <div className="space-y-3">
@@ -73,9 +113,18 @@ export default function EntryListPanel({
                       <p className="font-semibold text-slate-950">{entry.title}</p>
                       <p className="mt-1 text-sm text-slate-600">{entry.username}</p>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                      {entry.url ? "URL" : "Vault"}
-                    </span>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {entry.url ? (
+                        <span className="rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-medium text-cyan-700">
+                          URL
+                        </span>
+                      ) : null}
+                      {entry.notes ? (
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                          Notes
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <p className="mt-3 truncate text-sm text-slate-500">
                     {entry.url || entry.notes || "No URL or notes added yet."}
@@ -85,7 +134,7 @@ export default function EntryListPanel({
             })
           ) : (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm leading-6 text-slate-500">
-              No entries match the current filter.
+              No entries match the current search and filter combination.
             </div>
           )}
         </div>

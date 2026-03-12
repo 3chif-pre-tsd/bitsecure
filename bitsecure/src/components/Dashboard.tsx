@@ -2,7 +2,9 @@ import { useState } from "react";
 import type { AuthResult, UserProfile } from "../models/auth";
 import type {
   PasswordEntry,
+  PasswordEntryFilterOption,
   PasswordEntryInput,
+  PasswordEntrySortOption,
   PasswordEntryValidationErrors,
 } from "../models/passwordEntry";
 import ResetPasswordPanel from "./auth/ResetPasswordPanel";
@@ -14,11 +16,13 @@ import EntryListPanel from "./vault/EntryListPanel";
 interface DashboardProps {
   user: UserProfile;
   entries: PasswordEntry[];
-  filteredEntries: PasswordEntry[];
+  visibleEntries: PasswordEntry[];
   selectedEntry: PasswordEntry | null;
   entryDraft: PasswordEntryInput;
   entryErrors: PasswordEntryValidationErrors;
-  filterQuery: string;
+  searchQuery: string;
+  filterOption: PasswordEntryFilterOption;
+  sortOption: PasswordEntrySortOption;
   editingEntryId: string | null;
   isSavingEntry: boolean;
   resetDraft: {
@@ -34,12 +38,15 @@ interface DashboardProps {
   isResettingPassword: boolean;
   resetResult: AuthResult | null;
   onEntryDraftChange: (field: keyof PasswordEntryInput, value: string) => void;
+  onGeneratePassword: () => void;
   onSaveEntry: () => void;
   onSelectEntry: (entryId: string) => void;
   onEditEntry: (entry: PasswordEntry) => void;
   onCancelEdit: () => void;
   onDeleteEntry: (entryId: string) => void;
-  onFilterQueryChange: (value: string) => void;
+  onSearchQueryChange: (value: string) => void;
+  onFilterOptionChange: (value: PasswordEntryFilterOption) => void;
+  onSortOptionChange: (value: PasswordEntrySortOption) => void;
   onResetDraftChange: (
     field: "currentPassword" | "newPassword" | "confirmPassword",
     value: string,
@@ -51,11 +58,13 @@ interface DashboardProps {
 export default function Dashboard({
   user,
   entries,
-  filteredEntries,
+  visibleEntries,
   selectedEntry,
   entryDraft,
   entryErrors,
-  filterQuery,
+  searchQuery,
+  filterOption,
+  sortOption,
   editingEntryId,
   isSavingEntry,
   resetDraft,
@@ -63,12 +72,15 @@ export default function Dashboard({
   isResettingPassword,
   resetResult,
   onEntryDraftChange,
+  onGeneratePassword,
   onSaveEntry,
   onSelectEntry,
   onEditEntry,
   onCancelEdit,
   onDeleteEntry,
-  onFilterQueryChange,
+  onSearchQueryChange,
+  onFilterOptionChange,
+  onSortOptionChange,
   onResetDraftChange,
   onResetMasterPassword,
   onLogout,
@@ -81,17 +93,21 @@ export default function Dashboard({
         <DashboardHeader
           user={user}
           entryCount={entries.length}
-          filteredCount={filteredEntries.length}
+          filteredCount={visibleEntries.length}
           selectedCount={selectedEntry ? 1 : 0}
           onLogout={onLogout}
         />
 
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr_1fr]">
           <EntryListPanel
-            entries={filteredEntries}
+            entries={visibleEntries}
             selectedEntryId={selectedEntry?.id ?? null}
-            filterQuery={filterQuery}
-            onFilterQueryChange={onFilterQueryChange}
+            searchQuery={searchQuery}
+            filterOption={filterOption}
+            sortOption={sortOption}
+            onSearchQueryChange={onSearchQueryChange}
+            onFilterOptionChange={onFilterOptionChange}
+            onSortOptionChange={onSortOptionChange}
             onSelectEntry={onSelectEntry}
             onResetPasswordVisibility={() => setIsPasswordVisible(false)}
           />
@@ -112,6 +128,7 @@ export default function Dashboard({
             editingEntryId={editingEntryId}
             isSavingEntry={isSavingEntry}
             onEntryDraftChange={onEntryDraftChange}
+            onGeneratePassword={onGeneratePassword}
             onSaveEntry={onSaveEntry}
             onCancelEdit={onCancelEdit}
           />
