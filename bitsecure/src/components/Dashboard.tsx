@@ -20,6 +20,7 @@ interface DashboardProps {
   onSelectEntry: (entryId: string) => void;
   onEditEntry: (entry: PasswordEntry) => void;
   onCancelEdit: () => void;
+  onDeleteEntry: (entryId: string) => void;
   onLogout: () => void;
 }
 
@@ -43,6 +44,7 @@ export default function Dashboard({
   onSelectEntry,
   onEditEntry,
   onCancelEdit,
+  onDeleteEntry,
   onLogout,
 }: DashboardProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -200,6 +202,14 @@ export default function Dashboard({
                         onClick={() => onEditEntry(selectedEntry)}
                       >
                         Edit entry
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger"
+                        onClick={() => onDeleteEntry(selectedEntry.id)}
+                        disabled={isSavingEntry}
+                      >
+                        Delete entry
                       </button>
                     </div>
                   </>

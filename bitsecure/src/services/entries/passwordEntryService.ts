@@ -110,3 +110,16 @@ export async function updatePasswordEntry(
 
   return updatedEntry;
 }
+
+export async function deletePasswordEntry(entryId: string): Promise<boolean> {
+  const entries = await readEntries();
+  const nextEntries = entries.filter((entry) => entry.id !== entryId);
+
+  if (nextEntries.length === entries.length) {
+    return false;
+  }
+
+  await saveEntries(nextEntries);
+
+  return true;
+}

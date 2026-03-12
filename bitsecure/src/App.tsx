@@ -16,6 +16,7 @@ import {
 } from "./services/auth/masterPasswordService";
 import {
   addPasswordEntry,
+  deletePasswordEntry,
   getPasswordEntries,
   updatePasswordEntry,
 } from "./services/entries/passwordEntryService";
@@ -142,6 +143,20 @@ export default function App() {
     setEntryErrors({});
   }
 
+  async function handleDeleteEntry(entryId: string) {
+    setIsSavingEntry(true);
+    const wasDeleted = await deletePasswordEntry(entryId);
+
+    if (wasDeleted) {
+      await loadEntries();
+      if (editingEntryId === entryId) {
+        handleCancelEdit();
+      }
+    }
+
+    setIsSavingEntry(false);
+  }
+
   function handleLogout() {
     clearActiveEncryptionKey();
     setIsAuthenticated(false);
@@ -181,6 +196,7 @@ export default function App() {
           onSelectEntry={handleSelectEntry}
           onEditEntry={handleEditEntry}
           onCancelEdit={handleCancelEdit}
+          onDeleteEntry={handleDeleteEntry}
           onLogout={handleLogout}
         />
       )}
