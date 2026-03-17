@@ -1,4 +1,4 @@
-import { ACCOUNT_STORAGE_KEY } from "../../constants/auth";
+import { ACCOUNT_STORAGE_KEY, ENTRY_STORAGE_KEY } from "../../constants/auth";
 import type {
   AuthResult,
   MasterPasswordCredentials,
@@ -6,9 +6,9 @@ import type {
   StoredAccount,
 } from "../../models/auth";
 import {
-  createRandomBase64,
   decryptText,
-  deriveEncryptionKey,
+  deriveLegacyEncryptionKey,
+  deriveMasterKey,
   encryptText,
 } from "../security/cryptoService";
 import { readVaultEntriesWithKey, writeVaultEntriesWithKey } from "../storage/encryptedVaultStorage";
@@ -34,20 +34,21 @@ function readStoredAccount(): StoredAccount | null {
     const parsedValue = JSON.parse(rawValue) as Partial<StoredAccount>;
 
     if (
-      typeof parsedValue.salt !== "string" ||
       typeof parsedValue.verifierIv !== "string" ||
-      typeof parsedValue.verifierPayload !== "string"
+      typeof parsedValue.verifierPayload !== "string" ||
+      (parsedValue.salt !== undefined && typeof parsedValue.salt !== "string")
     ) {
       removeFromStorage(ACCOUNT_STORAGE_KEY);
       return null;
     }
 
     return {
-      salt: parsedValue.salt,
       verifierIv: parsedValue.verifierIv,
       verifierPayload: parsedValue.verifierPayload,
+      salt: parsedValue.salt,
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to parse stored account.", error);
     removeFromStorage(ACCOUNT_STORAGE_KEY);
     return null;
   }
@@ -60,13 +61,11 @@ function saveStoredAccount(payload: StoredAccount): void {
 async function buildStoredAccount(
   credentials: MasterPasswordCredentials,
 ): Promise<{ storedAccount: StoredAccount; encryptionKey: CryptoKey }> {
-  const salt = createRandomBase64(16);
-  const encryptionKey = await deriveEncryptionKey(credentials.password, salt);
+  const encryptionKey = await deriveMasterKey(credentials.password);
   const encryptedVerifier = await encryptText(MASTER_PASSWORD_VERIFIER, encryptionKey);
 
   return {
     storedAccount: {
-      salt,
       verifierIv: encryptedVerifier.iv,
       verifierPayload: encryptedVerifier.payload,
     },
@@ -74,25 +73,67 @@ async function buildStoredAccount(
   };
 }
 
+async function tryReadVerifier(
+  storedAccount: StoredAccount,
+  encryptionKey: CryptoKey,
+): Promise<boolean> {
+  try {
+    const verifier = await decryptText(
+      storedAccount.verifierPayload,
+      storedAccount.verifierIv,
+      encryptionKey,
+    );
+
+    return verifier === MASTER_PASSWORD_VERIFIER;
+  } catch (error) {
+    console.error("Failed to decrypt stored verifier.", error);
+    return false;
+  }
+}
+
 async function validateStoredCredentials(
   credentials: MasterPasswordCredentials,
-): Promise<CryptoKey | null> {
+): Promise<{ encryptionKey: CryptoKey; requiresMigration: boolean } | null> {
   const storedAccount = readStoredAccount();
 
   if (!storedAccount) {
     return null;
   }
 
-  const encryptionKey = await deriveEncryptionKey(credentials.password, storedAccount.salt);
-  const verifier = await decryptText(
-    storedAccount.verifierPayload,
-    storedAccount.verifierIv,
-    encryptionKey,
-  );
+  const encryptionKey = await deriveMasterKey(credentials.password);
 
-  if (verifier !== MASTER_PASSWORD_VERIFIER) {
+  if (await tryReadVerifier(storedAccount, encryptionKey)) {
+    return {
+      encryptionKey,
+      requiresMigration: false,
+    };
+  }
+
+  if (!storedAccount.salt) {
     return null;
   }
+
+  const legacyEncryptionKey = await deriveLegacyEncryptionKey(credentials.password, storedAccount.salt);
+
+  if (!(await tryReadVerifier(storedAccount, legacyEncryptionKey))) {
+    return null;
+  }
+
+  return {
+    encryptionKey: legacyEncryptionKey,
+    requiresMigration: true,
+  };
+}
+
+async function migrateLegacyAccount(
+  credentials: MasterPasswordCredentials,
+  legacyKey: CryptoKey,
+): Promise<CryptoKey> {
+  const entries = await readVaultEntriesWithKey(legacyKey);
+  const { storedAccount, encryptionKey } = await buildStoredAccount(credentials);
+
+  await writeVaultEntriesWithKey(entries, encryptionKey);
+  saveStoredAccount(storedAccount);
 
   return encryptionKey;
 }
@@ -107,6 +148,12 @@ export function getActiveEncryptionKey(): CryptoKey | null {
 
 export function clearActiveEncryptionKey(): void {
   activeSession = null;
+}
+
+export function resetLocalVaultState(): void {
+  clearActiveEncryptionKey();
+  removeFromStorage(ACCOUNT_STORAGE_KEY);
+  removeFromStorage(ENTRY_STORAGE_KEY);
 }
 
 export async function initializeMasterPassword(
@@ -159,14 +206,18 @@ export async function login(credentials: MasterPasswordCredentials): Promise<Aut
   }
 
   try {
-    const encryptionKey = await validateStoredCredentials(credentials);
+    const validationResult = await validateStoredCredentials(credentials);
 
-    if (!encryptionKey) {
+    if (!validationResult) {
       return {
         status: "error",
         message: "Master password is invalid.",
       };
     }
+
+    const encryptionKey = validationResult.requiresMigration
+      ? await migrateLegacyAccount(credentials, validationResult.encryptionKey)
+      : validationResult.encryptionKey;
 
     activeSession = {
       encryptionKey,
@@ -176,7 +227,8 @@ export async function login(credentials: MasterPasswordCredentials): Promise<Aut
       status: "success",
       message: "Vault unlocked successfully.",
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to unlock vault.", error);
     return {
       status: "error",
       message: "Master password is invalid.",
@@ -220,17 +272,25 @@ export async function resetMasterPassword(
   }
 
   try {
-    const currentEncryptionKey = await validateStoredCredentials({
+    const validationResult = await validateStoredCredentials({
       password: input.currentPassword,
     });
 
-    if (!currentEncryptionKey) {
+    if (!validationResult) {
       return {
         status: "error",
         message: "Current master password is invalid.",
       };
     }
 
+    const currentEncryptionKey = validationResult.requiresMigration
+      ? await migrateLegacyAccount(
+          {
+            password: input.currentPassword,
+          },
+          validationResult.encryptionKey,
+        )
+      : validationResult.encryptionKey;
     const entries = await readVaultEntriesWithKey(currentEncryptionKey);
     const { storedAccount, encryptionKey } = await buildStoredAccount({
       password: input.newPassword,
@@ -246,7 +306,8 @@ export async function resetMasterPassword(
       status: "success",
       message: "Master password updated successfully.",
     };
-  } catch {
+  } catch (error) {
+    console.error("Failed to reset master password.", error);
     return {
       status: "error",
       message: "Current master password is invalid.",

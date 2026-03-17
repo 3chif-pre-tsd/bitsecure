@@ -1,8 +1,6 @@
 const CRYPTO_KEY_ALGORITHM = "AES-GCM";
-const DERIVATION_ALGORITHM = "PBKDF2";
 const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder();
-const PBKDF2_ITERATIONS = 250_000;
 
 function encodeBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -36,20 +34,38 @@ export function createRandomBase64(size: number): string {
   return encodeBase64(bytes);
 }
 
-export async function deriveEncryptionKey(password: string, salt: string): Promise<CryptoKey> {
+export async function deriveMasterKey(password: string): Promise<CryptoKey> {
+  const keyMaterial = await getCryptoApi().subtle.digest("SHA-256", TEXT_ENCODER.encode(password));
+
+  return getCryptoApi().subtle.importKey(
+    "raw",
+    keyMaterial,
+    {
+      name: CRYPTO_KEY_ALGORITHM,
+      length: 256,
+    },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+export async function deriveLegacyEncryptionKey(
+  password: string,
+  salt: string,
+): Promise<CryptoKey> {
   const baseKey = await getCryptoApi().subtle.importKey(
     "raw",
     TEXT_ENCODER.encode(password),
-    DERIVATION_ALGORITHM,
+    "PBKDF2",
     false,
     ["deriveKey"],
   );
 
   return getCryptoApi().subtle.deriveKey(
     {
-      name: DERIVATION_ALGORITHM,
+      name: "PBKDF2",
       salt: decodeBase64(salt),
-      iterations: PBKDF2_ITERATIONS,
+      iterations: 250_000,
       hash: "SHA-256",
     },
     baseKey,

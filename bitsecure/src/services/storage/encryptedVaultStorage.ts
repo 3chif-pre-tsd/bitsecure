@@ -25,6 +25,19 @@ function isPasswordEntry(value: unknown): value is PasswordEntry {
   );
 }
 
+function arePasswordEntries(value: unknown): value is PasswordEntry[] {
+  return Array.isArray(value) && value.every(isPasswordEntry);
+}
+
+function resetCorruptedVaultStorage(rawEntries: string, reason: string, error?: unknown): PasswordEntry[] {
+  console.error(reason, {
+    error,
+    rawEntries,
+  });
+  removeFromStorage(ENTRY_STORAGE_KEY);
+  return [];
+}
+
 export async function readVaultEntriesWithKey(key: CryptoKey): Promise<PasswordEntry[]> {
   const rawEntries = readFromStorage(ENTRY_STORAGE_KEY);
 
@@ -33,32 +46,58 @@ export async function readVaultEntriesWithKey(key: CryptoKey): Promise<PasswordE
   }
 
   let encryptedEntries: Partial<StoredEncryptedEntries>;
+  let parsedStorageValue: unknown;
 
   try {
-    encryptedEntries = JSON.parse(rawEntries) as Partial<StoredEncryptedEntries>;
-  } catch {
-    removeFromStorage(ENTRY_STORAGE_KEY);
-    throw new Error("Stored vault data is invalid.");
+    parsedStorageValue = JSON.parse(rawEntries);
+  } catch (error) {
+    return resetCorruptedVaultStorage(rawEntries, "Stored vault data is not valid JSON.", error);
   }
+
+  if (arePasswordEntries(parsedStorageValue)) {
+    try {
+      await writeVaultEntriesWithKey(parsedStorageValue, key);
+      return parsedStorageValue;
+    } catch (error) {
+      return resetCorruptedVaultStorage(
+        rawEntries,
+        "Failed to migrate legacy plaintext vault storage.",
+        error,
+      );
+    }
+  }
+
+  encryptedEntries = parsedStorageValue as Partial<StoredEncryptedEntries>;
 
   if (
     typeof encryptedEntries.iv !== "string" ||
     typeof encryptedEntries.payload !== "string"
   ) {
-    throw new Error("Stored vault data is invalid.");
+    return resetCorruptedVaultStorage(rawEntries, "Stored vault data has an invalid format.");
   }
 
-  const payload = await decryptText(encryptedEntries.payload, encryptedEntries.iv, key);
+  let payload: string;
+
+  try {
+    payload = await decryptText(encryptedEntries.payload, encryptedEntries.iv, key);
+  } catch (error) {
+    return resetCorruptedVaultStorage(rawEntries, "Stored vault data could not be decrypted.", error);
+  }
+
   let parsedEntries: unknown;
 
   try {
     parsedEntries = JSON.parse(payload);
-  } catch {
-    throw new Error("Stored vault data is invalid.");
+  } catch (error) {
+    return resetCorruptedVaultStorage(
+      rawEntries,
+      "Decrypted vault data is not valid JSON.",
+      error,
+    );
   }
 
-  if (!Array.isArray(parsedEntries) || !parsedEntries.every(isPasswordEntry)) {
-    throw new Error("Stored vault data is invalid.");
+  if (!arePasswordEntries(parsedEntries)) {
+    return resetCorruptedVaultStorage(rawEntries, "Decrypted vault data has an invalid shape.");
   }
 
   return parsedEntries;
@@ -68,6 +107,15 @@ export async function writeVaultEntriesWithKey(
   entries: PasswordEntry[],
   key: CryptoKey,
 ): Promise<void> {
-  const encryptedEntries = await encryptText(JSON.stringify(entries), key);
-  writeToStorage(ENTRY_STORAGE_KEY, JSON.stringify(encryptedEntries));
+  if (!arePasswordEntries(entries)) {
+    throw new Error("Vault entries are invalid.");
+  }
+
+  try {
+    const encryptedEntries = await encryptText(JSON.stringify(entries), key);
+    writeToStorage(ENTRY_STORAGE_KEY, JSON.stringify(encryptedEntries));
+  } catch (error) {
+    console.error("Failed to encrypt and store vault entries.", error);
+    throw error;
+  }
 }

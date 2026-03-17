@@ -69,4 +69,40 @@ describe("passwordEntryService", () => {
       password: "trim-me-not",
     });
   });
+
+  it("migrates legacy plaintext vault storage to encrypted storage when loading", async () => {
+    window.localStorage.setItem(
+      ENTRY_STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: "plain-entry",
+          title: "Legacy",
+          username: "octocat",
+          password: "pa55word",
+          url: "https://github.com",
+          notes: "plaintext",
+          createdAt: "2026-03-17T10:00:00.000Z",
+          updatedAt: "2026-03-17T10:00:00.000Z",
+        },
+      ]),
+    );
+
+    const storedEntries = await getPasswordEntries();
+    const rawStorageValue = window.localStorage.getItem(ENTRY_STORAGE_KEY);
+
+    expect(storedEntries).toHaveLength(1);
+    expect(storedEntries[0].id).toBe("plain-entry");
+    expect(rawStorageValue).toContain("\"iv\"");
+    expect(rawStorageValue).toContain("\"payload\"");
+    expect(rawStorageValue).not.toContain("pa55word");
+  });
+
+  it("clears corrupted vault storage instead of crashing the session", async () => {
+    window.localStorage.setItem(ENTRY_STORAGE_KEY, "{broken-json");
+
+    const storedEntries = await getPasswordEntries();
+
+    expect(storedEntries).toEqual([]);
+    expect(window.localStorage.getItem(ENTRY_STORAGE_KEY)).toBeNull();
+  });
 });

@@ -79,7 +79,8 @@ export function useVault(isAuthenticated: boolean) {
           : storedEntries[0]?.id ?? null;
       });
       setVaultFeedback(null);
-    } catch {
+    } catch (error) {
+      console.error("Failed to load vault entries.", error);
       setEntries([]);
       setSelectedEntryId(null);
       setEditingEntryId(null);
@@ -152,7 +153,8 @@ export function useVault(isAuthenticated: boolean) {
       setEntryDraft(EMPTY_ENTRY_DRAFT);
       setEntryErrors({});
       setEditingEntryId(null);
-    } catch {
+    } catch (error) {
+      console.error("Failed to save vault entry.", error);
       setVaultFeedback({
         status: "error",
         message: "The entry could not be saved.",
@@ -207,7 +209,8 @@ export function useVault(isAuthenticated: boolean) {
         status: "success",
         message: "Entry deleted successfully.",
       });
-    } catch {
+    } catch (error) {
+      console.error("Failed to delete vault entry.", error);
       setVaultFeedback({
         status: "error",
         message: "The entry could not be deleted.",

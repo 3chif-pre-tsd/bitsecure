@@ -18,14 +18,39 @@ interface FieldProps {
   label: string;
   error?: string;
   hint?: string;
+  required?: boolean;
+  optional?: boolean;
+}
+
+function FieldLabel({
+  label,
+  required,
+  optional,
+}: Pick<FieldProps, "label" | "required" | "optional">) {
+  return (
+    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm font-semibold text-slate-700">
+      <span>{label}</span>
+      {required ? <span className="text-rose-500">*</span> : null}
+      {optional ? <span className="text-xs font-medium text-slate-500">(optional)</span> : null}
+    </span>
+  );
 }
 
 interface InputFieldProps extends FieldProps, InputHTMLAttributes<HTMLInputElement> {}
 
-export function InputField({ label, error, hint, className, id, ...props }: InputFieldProps) {
+export function InputField({
+  label,
+  error,
+  hint,
+  required,
+  optional,
+  className,
+  id,
+  ...props
+}: InputFieldProps) {
   return (
-    <label htmlFor={id} className="block space-y-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <label htmlFor={id} className="block space-y-2.5">
+      <FieldLabel label={label} required={required} optional={optional} />
       <input
         id={id}
         aria-invalid={Boolean(error)}
@@ -44,13 +69,15 @@ export function TextareaField({
   label,
   error,
   hint,
+  required,
+  optional,
   className,
   id,
   ...props
 }: TextareaFieldProps) {
   return (
-    <label htmlFor={id} className="block space-y-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <label htmlFor={id} className="block space-y-2.5">
+      <FieldLabel label={label} required={required} optional={optional} />
       <textarea
         id={id}
         aria-invalid={Boolean(error)}
@@ -69,14 +96,16 @@ export function SelectField({
   label,
   error,
   hint,
+  required,
+  optional,
   className,
   id,
   children,
   ...props
 }: SelectFieldProps) {
   return (
-    <label htmlFor={id} className="block space-y-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <label htmlFor={id} className="block space-y-2.5">
+      <FieldLabel label={label} required={required} optional={optional} />
       <select
         id={id}
         aria-invalid={Boolean(error)}

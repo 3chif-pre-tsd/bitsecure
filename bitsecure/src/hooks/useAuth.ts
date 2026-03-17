@@ -6,6 +6,7 @@ import {
   hasConfiguredAccount,
   initializeMasterPassword,
   login,
+  resetLocalVaultState,
   resetMasterPassword,
 } from "../services/auth/masterPasswordService";
 
@@ -185,6 +186,32 @@ export function useAuth() {
     setResetResult(null);
   }
 
+  function resetLocalVault(): boolean {
+    const shouldReset = window.confirm(
+      "Reset the local vault?\n\nThis deletes all vault entries and the stored master-password setup from this browser. This action cannot be undone.",
+    );
+
+    if (!shouldReset) {
+      return false;
+    }
+
+    resetLocalVaultState();
+    setHasAccount(false);
+    setIsAuthenticated(false);
+    setDraftPassword("");
+    setDraftConfirmPassword("");
+    setAuthErrors(EMPTY_AUTH_ERRORS);
+    setAuthResult({
+      status: "success",
+      message: "Local vault reset. Set a new master password to start again.",
+    });
+    setResetDraft(EMPTY_RESET_DRAFT);
+    setResetErrors({});
+    setResetResult(null);
+
+    return true;
+  }
+
   return {
     hasAccount,
     isAuthenticated,
@@ -200,6 +227,7 @@ export function useAuth() {
     setDraftPassword: updateDraftPassword,
     setDraftConfirmPassword: updateDraftConfirmPassword,
     submitAuth,
+    resetLocalVault,
     updateResetDraft,
     submitResetMasterPassword,
     logout,

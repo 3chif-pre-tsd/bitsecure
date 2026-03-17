@@ -16,6 +16,7 @@ interface AuthPanelProps {
   onPasswordChange: (value: string) => void;
   onConfirmPasswordChange: (value: string) => void;
   onSubmit: () => void;
+  onResetLocalVault: () => void;
 }
 
 export default function AuthPanel({
@@ -29,6 +30,7 @@ export default function AuthPanel({
   onPasswordChange,
   onConfirmPasswordChange,
   onSubmit,
+  onResetLocalVault,
 }: AuthPanelProps) {
   const title = hasAccount ? "Unlock your vault" : "Set your master password";
   const description = hasAccount
@@ -117,6 +119,23 @@ export default function AuthPanel({
               <Icon name="vault" className="size-4" />
               {buttonLabel}
             </Button>
+
+            {hasAccount ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4">
+                <p className="text-sm font-semibold text-rose-900">Locked out or vault not loading?</p>
+                <p className="mt-1 text-sm leading-6 text-rose-700">
+                  Reset the local vault to remove all stored entries and master-password data from
+                  this browser, then start again with a fresh setup.
+                </p>
+                <Button
+                  variant="danger"
+                  className="mt-3 w-full sm:w-auto"
+                  onClick={onResetLocalVault}
+                >
+                  Reset local vault
+                </Button>
+              </div>
+            ) : null}
           </form>
         </Panel>
       </div>

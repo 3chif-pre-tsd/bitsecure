@@ -43,8 +43,8 @@ export default function EntryListPanel({
       title="Entries"
       description="Search, filter, and sort the vault before opening a record."
       action={
-        <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-          {entries.length} / {totalEntries}
+        <div className="inline-flex min-w-fit items-center whitespace-nowrap rounded-2xl bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-700">
+          {entries.length}/{totalEntries} entries
         </div>
       }
     >

@@ -15,7 +15,7 @@ export interface ResetMasterPasswordInput {
 }
 
 export interface StoredAccount {
-  salt: string;
   verifierIv: string;
   verifierPayload: string;
+  salt?: string;
 }

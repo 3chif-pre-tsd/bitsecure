@@ -22,6 +22,7 @@ export default function App() {
         onSubmit={() => {
           void auth.submitAuth();
         }}
+        onResetLocalVault={auth.resetLocalVault}
       />
     );
   }

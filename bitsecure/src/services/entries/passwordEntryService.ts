@@ -22,11 +22,25 @@ function normalizeEntryInput(entryInput: PasswordEntryInput): PasswordEntryInput
   };
 }
 
+function isValidEntryInput(entryInput: PasswordEntryInput): boolean {
+  return (
+    typeof entryInput.title === "string" &&
+    typeof entryInput.username === "string" &&
+    typeof entryInput.password === "string" &&
+    typeof entryInput.url === "string" &&
+    typeof entryInput.notes === "string"
+  );
+}
+
 export async function getPasswordEntries(): Promise<PasswordEntry[]> {
   return readVaultEntriesWithKey(getSessionKey());
 }
 
 export async function addPasswordEntry(entryInput: PasswordEntryInput): Promise<PasswordEntry> {
+  if (!isValidEntryInput(entryInput)) {
+    throw new Error("Entry input is invalid.");
+  }
+
   const normalizedEntry = normalizeEntryInput(entryInput);
   const now = new Date().toISOString();
   const nextEntry: PasswordEntry = {
@@ -46,6 +60,10 @@ export async function updatePasswordEntry(
   entryId: string,
   entryInput: PasswordEntryInput,
 ): Promise<PasswordEntry | null> {
+  if (!isValidEntryInput(entryInput)) {
+    throw new Error("Entry input is invalid.");
+  }
+
   const normalizedEntry = normalizeEntryInput(entryInput);
   const entries = await getPasswordEntries();
   const existingEntry = entries.find((entry) => entry.id === entryId);
