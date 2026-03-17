@@ -1,13 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
   color-scheme: light;
-  font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  font-family: "Sora", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at top, rgba(56, 189, 248, 0.16), transparent 35%),
-    radial-gradient(circle at right, rgba(16, 185, 129, 0.12), transparent 30%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 32%),
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.12), transparent 24%),
+    linear-gradient(180deg, #f8fafc 0%, #edf6ff 45%, #f8fafc 100%);
   color: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -26,4 +35,8 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+a {
+  color: inherit;
 }

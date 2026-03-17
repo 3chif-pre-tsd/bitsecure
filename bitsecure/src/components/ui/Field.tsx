@@ -26,7 +26,12 @@ export function InputField({ label, error, hint, className, id, ...props }: Inpu
   return (
     <label htmlFor={id} className="block space-y-2">
       <span className="text-sm font-medium text-slate-700">{label}</span>
-      <input id={id} className={mergeClasses(getFieldClasses(Boolean(error)), className)} {...props} />
+      <input
+        id={id}
+        aria-invalid={Boolean(error)}
+        className={mergeClasses(getFieldClasses(Boolean(error)), className)}
+        {...props}
+      />
       {error ? <span className="text-xs text-rose-600">{error}</span> : null}
       {!error && hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
     </label>
@@ -48,6 +53,7 @@ export function TextareaField({
       <span className="text-sm font-medium text-slate-700">{label}</span>
       <textarea
         id={id}
+        aria-invalid={Boolean(error)}
         className={mergeClasses(getFieldClasses(Boolean(error)), "min-h-32 resize-y", className)}
         {...props}
       />
@@ -73,6 +79,7 @@ export function SelectField({
       <span className="text-sm font-medium text-slate-700">{label}</span>
       <select
         id={id}
+        aria-invalid={Boolean(error)}
         className={mergeClasses(getFieldClasses(Boolean(error)), className)}
         {...props}
       >
