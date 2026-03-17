@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { AuthResult, UserProfile } from "../models/auth";
+import type { AuthResult } from "../models/auth";
 import type {
   PasswordEntry,
   PasswordEntryFilterOption,
@@ -8,13 +8,13 @@ import type {
   PasswordEntryValidationErrors,
 } from "../models/passwordEntry";
 import ResetPasswordPanel from "./auth/ResetPasswordPanel";
+import FeedbackMessage from "./ui/FeedbackMessage";
 import DashboardHeader from "./vault/DashboardHeader";
 import EntryDetailsPanel from "./vault/EntryDetailsPanel";
 import EntryEditorPanel from "./vault/EntryEditorPanel";
 import EntryListPanel from "./vault/EntryListPanel";
 
 interface DashboardProps {
-  user: UserProfile;
   entries: PasswordEntry[];
   visibleEntries: PasswordEntry[];
   selectedEntry: PasswordEntry | null;
@@ -25,6 +25,11 @@ interface DashboardProps {
   sortOption: PasswordEntrySortOption;
   editingEntryId: string | null;
   isSavingEntry: boolean;
+  isLoadingEntries: boolean;
+  vaultFeedback: {
+    status: "success" | "error";
+    message: string;
+  } | null;
   resetDraft: {
     currentPassword: string;
     newPassword: string;
@@ -56,7 +61,6 @@ interface DashboardProps {
 }
 
 export default function Dashboard({
-  user,
   entries,
   visibleEntries,
   selectedEntry,
@@ -67,6 +71,8 @@ export default function Dashboard({
   sortOption,
   editingEntryId,
   isSavingEntry,
+  isLoadingEntries,
+  vaultFeedback,
   resetDraft,
   resetErrors,
   isResettingPassword,
@@ -91,20 +97,26 @@ export default function Dashboard({
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <DashboardHeader
-          user={user}
           entryCount={entries.length}
           filteredCount={visibleEntries.length}
           selectedCount={selectedEntry ? 1 : 0}
+          isLoadingEntries={isLoadingEntries}
           onLogout={onLogout}
         />
+
+        {vaultFeedback ? (
+          <FeedbackMessage status={vaultFeedback.status} message={vaultFeedback.message} />
+        ) : null}
 
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr_1fr]">
           <EntryListPanel
             entries={visibleEntries}
+            totalEntries={entries.length}
             selectedEntryId={selectedEntry?.id ?? null}
             searchQuery={searchQuery}
             filterOption={filterOption}
             sortOption={sortOption}
+            isLoadingEntries={isLoadingEntries}
             onSearchQueryChange={onSearchQueryChange}
             onFilterOptionChange={onFilterOptionChange}
             onSortOptionChange={onSortOptionChange}

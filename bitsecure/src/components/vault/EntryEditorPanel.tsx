@@ -5,6 +5,7 @@ import type {
 } from "../../models/passwordEntry";
 import Button from "../ui/Button";
 import { InputField, TextareaField } from "../ui/Field";
+import FeedbackMessage from "../ui/FeedbackMessage";
 import Icon from "../ui/Icon";
 import Panel from "../ui/Panel";
 
@@ -51,10 +52,14 @@ export default function EntryEditorPanel({
         className="space-y-4"
         onSubmit={(event) => {
           event.preventDefault();
-          void onSaveEntry();
+          onSaveEntry();
         }}
         noValidate
       >
+        {entryErrors.form ? (
+          <FeedbackMessage status="error" message={entryErrors.form} />
+        ) : null}
+
         <InputField
           id="entry-title"
           label="Title"
@@ -84,7 +89,7 @@ export default function EntryEditorPanel({
               error={entryErrors.password}
               hint="Generate a strong random password when needed."
             />
-            <Button variant="secondary" onClick={onGeneratePassword}>
+            <Button className="w-full sm:w-auto" variant="secondary" onClick={onGeneratePassword}>
               <Icon name="plus" className="size-4" />
               Generate random password
             </Button>

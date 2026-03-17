@@ -5,8 +5,7 @@ export interface AuthResult {
   message: string;
 }
 
-export interface AuthCredentials {
-  username: string;
+export interface MasterPasswordCredentials {
   password: string;
 }
 
@@ -17,12 +16,6 @@ export interface ResetMasterPasswordInput {
 
 export interface StoredAccount {
   salt: string;
-  usernameIv: string;
-  usernamePayload: string;
   verifierIv: string;
   verifierPayload: string;
-}
-
-export interface UserProfile {
-  username: string;
 }

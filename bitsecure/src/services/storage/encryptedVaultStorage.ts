@@ -4,7 +4,26 @@ import type {
   StoredEncryptedEntries,
 } from "../../models/passwordEntry";
 import { decryptText, encryptText } from "../security/cryptoService";
-import { readFromStorage, writeToStorage } from "./localStorage";
+import { readFromStorage, removeFromStorage, writeToStorage } from "./localStorage";
+
+function isPasswordEntry(value: unknown): value is PasswordEntry {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const entry = value as Record<string, unknown>;
+
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.title === "string" &&
+    typeof entry.username === "string" &&
+    typeof entry.password === "string" &&
+    typeof entry.url === "string" &&
+    typeof entry.notes === "string" &&
+    typeof entry.createdAt === "string" &&
+    typeof entry.updatedAt === "string"
+  );
+}
 
 export async function readVaultEntriesWithKey(key: CryptoKey): Promise<PasswordEntry[]> {
   const rawEntries = readFromStorage(ENTRY_STORAGE_KEY);
@@ -13,7 +32,14 @@ export async function readVaultEntriesWithKey(key: CryptoKey): Promise<PasswordE
     return [];
   }
 
-  const encryptedEntries = JSON.parse(rawEntries) as Partial<StoredEncryptedEntries>;
+  let encryptedEntries: Partial<StoredEncryptedEntries>;
+
+  try {
+    encryptedEntries = JSON.parse(rawEntries) as Partial<StoredEncryptedEntries>;
+  } catch {
+    removeFromStorage(ENTRY_STORAGE_KEY);
+    throw new Error("Stored vault data is invalid.");
+  }
 
   if (
     typeof encryptedEntries.iv !== "string" ||
@@ -23,13 +49,19 @@ export async function readVaultEntriesWithKey(key: CryptoKey): Promise<PasswordE
   }
 
   const payload = await decryptText(encryptedEntries.payload, encryptedEntries.iv, key);
-  const parsedEntries = JSON.parse(payload);
+  let parsedEntries: unknown;
 
-  if (!Array.isArray(parsedEntries)) {
+  try {
+    parsedEntries = JSON.parse(payload);
+  } catch {
     throw new Error("Stored vault data is invalid.");
   }
 
-  return parsedEntries as PasswordEntry[];
+  if (!Array.isArray(parsedEntries) || !parsedEntries.every(isPasswordEntry)) {
+    throw new Error("Stored vault data is invalid.");
+  }
+
+  return parsedEntries;
 }
 
 export async function writeVaultEntriesWithKey(

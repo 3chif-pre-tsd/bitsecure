@@ -1,5 +1,6 @@
 import type { AuthResult } from "../../models/auth";
 import Button from "../ui/Button";
+import FeedbackMessage from "../ui/FeedbackMessage";
 import { InputField } from "../ui/Field";
 import Icon from "../ui/Icon";
 import Panel from "../ui/Panel";
@@ -70,18 +71,7 @@ export default function ResetPasswordPanel({
           error={confirmPasswordError}
         />
 
-        {resetResult ? (
-          <div
-            className={`rounded-2xl border px-4 py-3 text-sm ${
-              resetResult.status === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-rose-200 bg-rose-50 text-rose-700"
-            }`}
-            role="alert"
-          >
-            {resetResult.message}
-          </div>
-        ) : null}
+        {resetResult ? <FeedbackMessage status={resetResult.status} message={resetResult.message} /> : null}
 
         <Button type="submit" disabled={isSubmitting}>
           <Icon name="vault" className="size-4" />

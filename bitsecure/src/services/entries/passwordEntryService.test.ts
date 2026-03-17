@@ -1,8 +1,8 @@
 import { ENTRY_STORAGE_KEY } from "../../constants/auth";
 import {
   clearActiveEncryptionKey,
+  initializeMasterPassword,
   login,
-  registerAccount,
   resetMasterPassword,
 } from "../auth/masterPasswordService";
 import { addPasswordEntry, getPasswordEntries } from "./passwordEntryService";
@@ -11,8 +11,7 @@ describe("passwordEntryService", () => {
   beforeEach(async () => {
     window.localStorage.clear();
     clearActiveEncryptionKey();
-    await registerAccount({
-      username: "alice",
+    await initializeMasterPassword({
       password: "Sup3rSecret!",
     });
   });
@@ -58,7 +57,6 @@ describe("passwordEntryService", () => {
 
     clearActiveEncryptionKey();
     const loginResult = await login({
-      username: "alice",
       password: "N3wSecret!",
     });
     const storedEntries = await getPasswordEntries();

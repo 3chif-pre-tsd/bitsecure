@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   PasswordEntry,
   PasswordEntryFilterOption,
@@ -23,6 +23,11 @@ const EMPTY_ENTRY_DRAFT: PasswordEntryInput = {
   notes: "",
 };
 
+type Feedback = {
+  status: "success" | "error";
+  message: string;
+} | null;
+
 export function useVault(isAuthenticated: boolean) {
   const [entries, setEntries] = useState<PasswordEntry[]>([]);
   const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
@@ -33,6 +38,8 @@ export function useVault(isAuthenticated: boolean) {
   const [sortOption, setSortOption] = useState<PasswordEntrySortOption>("updated-desc");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
+  const [isLoadingEntries, setIsLoadingEntries] = useState(false);
+  const [vaultFeedback, setVaultFeedback] = useState<Feedback>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -45,6 +52,8 @@ export function useVault(isAuthenticated: boolean) {
       setSortOption("updated-desc");
       setEditingEntryId(null);
       setIsSavingEntry(false);
+      setIsLoadingEntries(false);
+      setVaultFeedback(null);
       return;
     }
 
@@ -52,6 +61,8 @@ export function useVault(isAuthenticated: boolean) {
   }, [isAuthenticated]);
 
   async function loadEntries(nextSelectedEntryId?: string | null) {
+    setIsLoadingEntries(true);
+
     try {
       const storedEntries = await getPasswordEntries();
 
@@ -67,9 +78,18 @@ export function useVault(isAuthenticated: boolean) {
           ? requestedEntryId
           : storedEntries[0]?.id ?? null;
       });
+      setVaultFeedback(null);
     } catch {
       setEntries([]);
       setSelectedEntryId(null);
+      setEditingEntryId(null);
+      setEntryDraft(EMPTY_ENTRY_DRAFT);
+      setVaultFeedback({
+        status: "error",
+        message: "The encrypted vault could not be loaded for this session.",
+      });
+    } finally {
+      setIsLoadingEntries(false);
     }
   }
 
@@ -81,7 +101,9 @@ export function useVault(isAuthenticated: boolean) {
     setEntryErrors((currentErrors) => ({
       ...currentErrors,
       [field]: undefined,
+      form: undefined,
     }));
+    setVaultFeedback(null);
   }
 
   function generatePassword() {
@@ -89,10 +111,11 @@ export function useVault(isAuthenticated: boolean) {
   }
 
   async function saveEntry() {
-    const validationErrors = validatePasswordEntry(entryDraft);
+    const validationErrors = validatePasswordEntry(entryDraft, entries, editingEntryId);
 
     if (Object.keys(validationErrors).length > 0) {
       setEntryErrors(validationErrors);
+      setVaultFeedback(null);
       return;
     }
 
@@ -102,17 +125,38 @@ export function useVault(isAuthenticated: boolean) {
       if (editingEntryId) {
         const updatedEntry = await updatePasswordEntry(editingEntryId, entryDraft);
 
-        if (updatedEntry) {
-          await loadEntries(updatedEntry.id);
+        if (!updatedEntry) {
+          setVaultFeedback({
+            status: "error",
+            message: "The selected entry is no longer available.",
+          });
+          setEditingEntryId(null);
+          await loadEntries();
+          return;
         }
+
+        await loadEntries(updatedEntry.id);
+        setVaultFeedback({
+          status: "success",
+          message: "Entry updated successfully.",
+        });
       } else {
         const createdEntry = await addPasswordEntry(entryDraft);
         await loadEntries(createdEntry.id);
+        setVaultFeedback({
+          status: "success",
+          message: "Entry added successfully.",
+        });
       }
 
       setEntryDraft(EMPTY_ENTRY_DRAFT);
       setEntryErrors({});
       setEditingEntryId(null);
+    } catch {
+      setVaultFeedback({
+        status: "error",
+        message: "The entry could not be saved.",
+      });
     } finally {
       setIsSavingEntry(false);
     }
@@ -129,12 +173,14 @@ export function useVault(isAuthenticated: boolean) {
       notes: entry.notes,
     });
     setEntryErrors({});
+    setVaultFeedback(null);
   }
 
   function cancelEdit() {
     setEditingEntryId(null);
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
+    setVaultFeedback(null);
   }
 
   async function removeEntry(entryId: string) {
@@ -143,54 +189,74 @@ export function useVault(isAuthenticated: boolean) {
     try {
       const wasDeleted = await deletePasswordEntry(entryId);
 
-      if (wasDeleted) {
+      if (!wasDeleted) {
+        setVaultFeedback({
+          status: "error",
+          message: "The selected entry is no longer available.",
+        });
         await loadEntries();
-        if (editingEntryId === entryId) {
-          cancelEdit();
-        }
+        return;
       }
+
+      if (editingEntryId === entryId) {
+        cancelEdit();
+      }
+
+      await loadEntries(selectedEntryId === entryId ? null : selectedEntryId);
+      setVaultFeedback({
+        status: "success",
+        message: "Entry deleted successfully.",
+      });
+    } catch {
+      setVaultFeedback({
+        status: "error",
+        message: "The entry could not be deleted.",
+      });
     } finally {
       setIsSavingEntry(false);
     }
   }
 
-  const visibleEntries = [...entries]
-    .filter((entry) => {
-      const normalizedQuery = searchQuery.trim().toLowerCase();
+  const visibleEntries = useMemo(() => {
+    return [...entries]
+      .filter((entry) => {
+        const normalizedQuery = searchQuery.trim().toLowerCase();
 
-      if (
-        normalizedQuery &&
-        ![entry.title, entry.username, entry.url, entry.notes].some((value) =>
-          value.toLowerCase().includes(normalizedQuery),
-        )
-      ) {
-        return false;
-      }
+        if (
+          normalizedQuery &&
+          ![entry.title, entry.username, entry.url, entry.notes].some((value) =>
+            value.toLowerCase().includes(normalizedQuery),
+          )
+        ) {
+          return false;
+        }
 
-      if (filterOption === "with-url") {
-        return Boolean(entry.url);
-      }
+        if (filterOption === "with-url") {
+          return Boolean(entry.url);
+        }
 
-      if (filterOption === "with-notes") {
-        return Boolean(entry.notes);
-      }
+        if (filterOption === "with-notes") {
+          return Boolean(entry.notes);
+        }
 
-      return true;
-    })
-    .sort((leftEntry, rightEntry) => {
-      if (sortOption === "title-asc") {
-        return leftEntry.title.localeCompare(rightEntry.title);
-      }
+        return true;
+      })
+      .sort((leftEntry, rightEntry) => {
+        if (sortOption === "title-asc") {
+          return leftEntry.title.localeCompare(rightEntry.title);
+        }
 
-      const leftValue =
-        sortOption === "created-desc" ? leftEntry.createdAt : leftEntry.updatedAt;
-      const rightValue =
-        sortOption === "created-desc" ? rightEntry.createdAt : rightEntry.updatedAt;
+        const leftValue =
+          sortOption === "created-desc" ? leftEntry.createdAt : leftEntry.updatedAt;
+        const rightValue =
+          sortOption === "created-desc" ? rightEntry.createdAt : rightEntry.updatedAt;
 
-      return new Date(rightValue).getTime() - new Date(leftValue).getTime();
-    });
+        return new Date(rightValue).getTime() - new Date(leftValue).getTime();
+      });
+  }, [entries, filterOption, searchQuery, sortOption]);
 
-  const selectedEntry = visibleEntries.find((entry) => entry.id === selectedEntryId) ??
+  const selectedEntry =
+    visibleEntries.find((entry) => entry.id === selectedEntryId) ??
     entries.find((entry) => entry.id === selectedEntryId) ??
     null;
 
@@ -205,6 +271,8 @@ export function useVault(isAuthenticated: boolean) {
     sortOption,
     editingEntryId,
     isSavingEntry,
+    isLoadingEntries,
+    vaultFeedback,
     setSearchQuery,
     setFilterOption,
     setSortOption,

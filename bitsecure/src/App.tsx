@@ -7,16 +7,18 @@ export default function App() {
   const auth = useAuth();
   const vault = useVault(auth.isAuthenticated);
 
-  if (!auth.isAuthenticated || !auth.currentUser) {
+  if (!auth.isAuthenticated) {
     return (
       <AuthPanel
         hasAccount={auth.hasAccount}
-        draftUsername={auth.draftUsername}
         draftPassword={auth.draftPassword}
+        draftConfirmPassword={auth.draftConfirmPassword}
+        passwordError={auth.authErrors.password}
+        confirmPasswordError={auth.authErrors.confirmPassword}
         isSubmitting={auth.isSubmitting}
         authResult={auth.authResult}
-        onUsernameChange={auth.setDraftUsername}
         onPasswordChange={auth.setDraftPassword}
+        onConfirmPasswordChange={auth.setDraftConfirmPassword}
         onSubmit={() => {
           void auth.submitAuth();
         }}
@@ -26,7 +28,6 @@ export default function App() {
 
   return (
     <Dashboard
-      user={auth.currentUser}
       entries={vault.entries}
       visibleEntries={vault.visibleEntries}
       selectedEntry={vault.selectedEntry}
@@ -37,6 +38,8 @@ export default function App() {
       sortOption={vault.sortOption}
       editingEntryId={vault.editingEntryId}
       isSavingEntry={vault.isSavingEntry}
+      isLoadingEntries={vault.isLoadingEntries}
+      vaultFeedback={vault.vaultFeedback}
       resetDraft={auth.resetDraft}
       resetErrors={auth.resetErrors}
       isResettingPassword={auth.isResettingPassword}

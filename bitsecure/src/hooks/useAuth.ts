@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import type { AuthResult, UserProfile } from "../models/auth";
+import type { AuthResult } from "../models/auth";
+import { validateMasterPassword } from "../services/auth/authValidation";
 import {
   clearActiveEncryptionKey,
-  getActiveUserProfile,
   hasConfiguredAccount,
+  initializeMasterPassword,
   login,
-  registerAccount,
   resetMasterPassword,
 } from "../services/auth/masterPasswordService";
 
@@ -15,12 +15,20 @@ const EMPTY_RESET_DRAFT = {
   confirmPassword: "",
 };
 
+const EMPTY_AUTH_ERRORS = {
+  password: undefined,
+  confirmPassword: undefined,
+};
+
 export function useAuth() {
   const [hasAccount, setHasAccount] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [draftUsername, setDraftUsername] = useState("");
   const [draftPassword, setDraftPassword] = useState("");
+  const [draftConfirmPassword, setDraftConfirmPassword] = useState("");
+  const [authErrors, setAuthErrors] = useState<{
+    password?: string;
+    confirmPassword?: string;
+  }>(EMPTY_AUTH_ERRORS);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
   const [resetDraft, setResetDraft] = useState(EMPTY_RESET_DRAFT);
@@ -36,32 +44,71 @@ export function useAuth() {
     setHasAccount(hasConfiguredAccount());
   }, []);
 
+  function updateDraftPassword(value: string) {
+    setDraftPassword(value);
+    setAuthErrors((currentErrors) => ({
+      ...currentErrors,
+      password: undefined,
+    }));
+    setAuthResult(null);
+  }
+
+  function updateDraftConfirmPassword(value: string) {
+    setDraftConfirmPassword(value);
+    setAuthErrors((currentErrors) => ({
+      ...currentErrors,
+      confirmPassword: undefined,
+    }));
+    setAuthResult(null);
+  }
+
   async function submitAuth(): Promise<boolean> {
-    setIsSubmitting(true);
+    const nextErrors = { ...EMPTY_AUTH_ERRORS };
+    const validationMessage = validateMasterPassword({
+      password: draftPassword,
+    });
 
-    const result = hasAccount
-      ? await login({
-          username: draftUsername,
-          password: draftPassword,
-        })
-      : await registerAccount({
-          username: draftUsername,
-          password: draftPassword,
-        });
+    if (validationMessage) {
+      nextErrors.password = validationMessage;
+    }
 
-    setAuthResult(result);
-    setIsSubmitting(false);
+    if (!hasAccount && draftConfirmPassword !== draftPassword) {
+      nextErrors.confirmPassword = "Confirmation must match the master password.";
+    }
 
-    if (result.status !== "success") {
+    if (Object.values(nextErrors).some(Boolean)) {
+      setAuthErrors(nextErrors);
+      setAuthResult(null);
       return false;
     }
 
-    setHasAccount(true);
-    setIsAuthenticated(true);
-    setDraftPassword("");
-    setCurrentUser(getActiveUserProfile());
+    setIsSubmitting(true);
 
-    return true;
+    try {
+      const result = hasAccount
+        ? await login({
+            password: draftPassword,
+          })
+        : await initializeMasterPassword({
+            password: draftPassword,
+          });
+
+      setAuthResult(result);
+
+      if (result.status !== "success") {
+        return false;
+      }
+
+      setHasAccount(true);
+      setIsAuthenticated(true);
+      setDraftPassword("");
+      setDraftConfirmPassword("");
+      setAuthErrors(EMPTY_AUTH_ERRORS);
+
+      return true;
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function updateResetDraft(
@@ -76,6 +123,7 @@ export function useAuth() {
       ...currentErrors,
       [field]: undefined,
     }));
+    setResetResult(null);
   }
 
   async function submitResetMasterPassword() {
@@ -85,8 +133,12 @@ export function useAuth() {
       nextErrors.currentPassword = "Current master password is required.";
     }
 
-    if (!resetDraft.newPassword.trim()) {
-      nextErrors.newPassword = "New master password is required.";
+    const newPasswordValidation = validateMasterPassword({
+      password: resetDraft.newPassword,
+    });
+
+    if (newPasswordValidation) {
+      nextErrors.newPassword = newPasswordValidation;
     }
 
     if (resetDraft.newPassword === resetDraft.currentPassword && resetDraft.newPassword.trim()) {
@@ -94,34 +146,39 @@ export function useAuth() {
     }
 
     if (resetDraft.confirmPassword !== resetDraft.newPassword) {
-      nextErrors.confirmPassword = "Confirmation must match the new password.";
+      nextErrors.confirmPassword = "Confirmation must match the new master password.";
     }
 
     if (Object.keys(nextErrors).length > 0) {
       setResetErrors(nextErrors);
+      setResetResult(null);
       return;
     }
 
     setIsResettingPassword(true);
-    const result = await resetMasterPassword({
-      currentPassword: resetDraft.currentPassword,
-      newPassword: resetDraft.newPassword,
-    });
-    setResetResult(result);
-    setIsResettingPassword(false);
 
-    if (result.status === "success") {
-      setResetDraft(EMPTY_RESET_DRAFT);
-      setResetErrors({});
+    try {
+      const result = await resetMasterPassword({
+        currentPassword: resetDraft.currentPassword,
+        newPassword: resetDraft.newPassword,
+      });
+      setResetResult(result);
+
+      if (result.status === "success") {
+        setResetDraft(EMPTY_RESET_DRAFT);
+        setResetErrors({});
+      }
+    } finally {
+      setIsResettingPassword(false);
     }
   }
 
   function logout() {
     clearActiveEncryptionKey();
     setIsAuthenticated(false);
-    setCurrentUser(null);
-    setDraftUsername("");
     setDraftPassword("");
+    setDraftConfirmPassword("");
+    setAuthErrors(EMPTY_AUTH_ERRORS);
     setAuthResult(null);
     setResetDraft(EMPTY_RESET_DRAFT);
     setResetErrors({});
@@ -131,17 +188,17 @@ export function useAuth() {
   return {
     hasAccount,
     isAuthenticated,
-    currentUser,
-    draftUsername,
     draftPassword,
+    draftConfirmPassword,
+    authErrors,
     isSubmitting,
     authResult,
     resetDraft,
     resetErrors,
     isResettingPassword,
     resetResult,
-    setDraftUsername,
-    setDraftPassword,
+    setDraftPassword: updateDraftPassword,
+    setDraftConfirmPassword: updateDraftConfirmPassword,
     submitAuth,
     updateResetDraft,
     submitResetMasterPassword,

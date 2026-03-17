@@ -1,111 +1,123 @@
 import type { AuthResult } from "../models/auth";
 import Button from "./ui/Button";
 import { InputField } from "./ui/Field";
+import FeedbackMessage from "./ui/FeedbackMessage";
 import Icon from "./ui/Icon";
 import Panel from "./ui/Panel";
 
 interface AuthPanelProps {
   hasAccount: boolean;
-  draftUsername: string;
   draftPassword: string;
+  draftConfirmPassword: string;
+  passwordError?: string;
+  confirmPasswordError?: string;
   isSubmitting: boolean;
   authResult: AuthResult | null;
-  onUsernameChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
+  onConfirmPasswordChange: (value: string) => void;
   onSubmit: () => void;
 }
 
 export default function AuthPanel({
   hasAccount,
-  draftUsername,
   draftPassword,
+  draftConfirmPassword,
+  passwordError,
+  confirmPasswordError,
   isSubmitting,
   authResult,
-  onUsernameChange,
   onPasswordChange,
+  onConfirmPasswordChange,
   onSubmit,
 }: AuthPanelProps) {
-  const title = hasAccount ? "Unlock your vault" : "Create your secure account";
+  const title = hasAccount ? "Unlock your vault" : "Set your master password";
   const description = hasAccount
-    ? "Sign in with your username and master password to decrypt the stored vault."
-    : "Set up a username and master password to create your encrypted vault in this browser.";
+    ? "Enter the master password to unlock the encrypted local vault stored in this browser."
+    : "Create a master password to initialize the encrypted local vault for this prototype.";
   const buttonLabel = isSubmitting
     ? "Please wait..."
     : hasAccount
       ? "Unlock vault"
-      : "Create account";
+      : "Create vault";
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="grid w-full max-w-5xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[32px] border border-white/60 bg-slate-950 px-8 py-10 text-white shadow-2xl shadow-slate-950/20">
+      <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="overflow-hidden rounded-[36px] border border-slate-900/10 bg-slate-950 px-8 py-10 text-white shadow-2xl shadow-slate-950/20 sm:px-10">
           <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
             <Icon name="vault" className="size-4" />
             BitSecure
           </span>
           <h1 className="mt-6 max-w-xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            Secure local vault access with encrypted credentials.
+            Secure local credentials with one consistent master password flow.
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-            BitSecure stores account metadata and entries in encrypted browser storage so the
-            session can be unlocked only with the correct username and master password.
+            BitSecure keeps the project focused on a presentation-ready local prototype with
+            encrypted browser storage, reliable vault access, and streamlined credential handling.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Username based</p>
-              <p className="mt-2 text-lg font-medium">Vault access tied to your account</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Local storage</p>
+              <p className="mt-2 text-lg font-medium">No API, no database, no extra setup</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Master password</p>
-              <p className="mt-2 text-lg font-medium">Encryption key derived locally</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                Encrypted vault
+              </p>
+              <p className="mt-2 text-lg font-medium">Entries stay protected in the browser</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Reset ready</p>
-              <p className="mt-2 text-lg font-medium">Re-encrypt your vault safely</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                Focused access
+              </p>
+              <p className="mt-2 text-lg font-medium">One master password for setup and unlock</p>
             </div>
           </div>
         </section>
 
-        <Panel eyebrow="Secure access" title={title} description={description}>
-          <div className="space-y-5">
-            <InputField
-              id="username"
-              type="text"
-              label="Username"
-              value={draftUsername}
-              onChange={(event) => onUsernameChange(event.target.value)}
-              placeholder="Enter your username"
-              autoComplete="username"
-            />
-
+        <Panel eyebrow="Secure access" title={title} description={description} className="self-center">
+          <form
+            className="space-y-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSubmit();
+            }}
+            noValidate
+          >
             <InputField
               id="master-password"
               type="password"
-              label="Master password"
+              label={hasAccount ? "Master password" : "Create master password"}
               value={draftPassword}
               onChange={(event) => onPasswordChange(event.target.value)}
-              placeholder="Enter your master password"
+              placeholder={hasAccount ? "Enter your master password" : "Choose a master password"}
               autoComplete={hasAccount ? "current-password" : "new-password"}
+              error={passwordError}
+              hint={!hasAccount ? "Use at least 8 characters for a reliable local demo." : undefined}
             />
 
-            {authResult ? (
-              <div
-                className={`rounded-2xl border px-4 py-3 text-sm ${
-                  authResult.status === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-rose-200 bg-rose-50 text-rose-700"
-                }`}
-                role="alert"
-              >
-                {authResult.message}
-              </div>
+            {!hasAccount ? (
+              <InputField
+                id="confirm-master-password"
+                type="password"
+                label="Confirm master password"
+                value={draftConfirmPassword}
+                onChange={(event) => onConfirmPasswordChange(event.target.value)}
+                placeholder="Repeat the master password"
+                autoComplete="new-password"
+                error={confirmPasswordError}
+              />
             ) : null}
 
-            <Button fullWidth onClick={onSubmit} disabled={isSubmitting}>
+            {authResult ? (
+              <FeedbackMessage status={authResult.status} message={authResult.message} />
+            ) : null}
+
+            <Button type="submit" fullWidth disabled={isSubmitting}>
               <Icon name="vault" className="size-4" />
               {buttonLabel}
             </Button>
-          </div>
+          </form>
         </Panel>
       </div>
     </main>

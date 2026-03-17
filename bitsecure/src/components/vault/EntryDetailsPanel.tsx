@@ -48,6 +48,18 @@ export default function EntryDetailsPanel({
     }
   }
 
+  function handleDeleteEntry() {
+    if (!entry) {
+      return;
+    }
+
+    if (!window.confirm(`Delete "${entry.title}" from the vault?`)) {
+      return;
+    }
+
+    onDeleteEntry(entry.id);
+  }
+
   return (
     <Panel
       eyebrow="Entry details"
@@ -136,7 +148,7 @@ export default function EntryDetailsPanel({
             </Button>
             <Button
               variant="danger"
-              onClick={() => onDeleteEntry(entry.id)}
+              onClick={handleDeleteEntry}
               disabled={isSavingEntry}
             >
               <Icon name="trash" className="size-4" />

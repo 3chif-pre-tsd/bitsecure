@@ -1,10 +1,9 @@
 import { ACCOUNT_STORAGE_KEY } from "../../constants/auth";
 import type {
-  AuthCredentials,
   AuthResult,
+  MasterPasswordCredentials,
   ResetMasterPasswordInput,
   StoredAccount,
-  UserProfile,
 } from "../../models/auth";
 import {
   createRandomBase64,
@@ -18,10 +17,11 @@ import {
   removeFromStorage,
   writeToStorage,
 } from "../storage/localStorage";
+import { validateMasterPassword } from "./authValidation";
 
 const MASTER_PASSWORD_VERIFIER = "BitSecure master password verifier";
 
-let activeSession: { username: string; encryptionKey: CryptoKey } | null = null;
+let activeSession: { encryptionKey: CryptoKey } | null = null;
 
 function readStoredAccount(): StoredAccount | null {
   const rawValue = readFromStorage(ACCOUNT_STORAGE_KEY);
@@ -35,8 +35,6 @@ function readStoredAccount(): StoredAccount | null {
 
     if (
       typeof parsedValue.salt !== "string" ||
-      typeof parsedValue.usernameIv !== "string" ||
-      typeof parsedValue.usernamePayload !== "string" ||
       typeof parsedValue.verifierIv !== "string" ||
       typeof parsedValue.verifierPayload !== "string"
     ) {
@@ -46,8 +44,6 @@ function readStoredAccount(): StoredAccount | null {
 
     return {
       salt: parsedValue.salt,
-      usernameIv: parsedValue.usernameIv,
-      usernamePayload: parsedValue.usernamePayload,
       verifierIv: parsedValue.verifierIv,
       verifierPayload: parsedValue.verifierPayload,
     };
@@ -61,37 +57,16 @@ function saveStoredAccount(payload: StoredAccount): void {
   writeToStorage(ACCOUNT_STORAGE_KEY, JSON.stringify(payload));
 }
 
-function validateCredentialsInput(credentials: AuthCredentials): AuthResult | null {
-  if (!credentials.username.trim()) {
-    return {
-      status: "error",
-      message: "Username is required.",
-    };
-  }
-
-  if (!credentials.password.trim()) {
-    return {
-      status: "error",
-      message: "Master password is required.",
-    };
-  }
-
-  return null;
-}
-
 async function buildStoredAccount(
-  credentials: AuthCredentials,
+  credentials: MasterPasswordCredentials,
 ): Promise<{ storedAccount: StoredAccount; encryptionKey: CryptoKey }> {
   const salt = createRandomBase64(16);
   const encryptionKey = await deriveEncryptionKey(credentials.password, salt);
-  const encryptedUsername = await encryptText(credentials.username.trim(), encryptionKey);
   const encryptedVerifier = await encryptText(MASTER_PASSWORD_VERIFIER, encryptionKey);
 
   return {
     storedAccount: {
       salt,
-      usernameIv: encryptedUsername.iv,
-      usernamePayload: encryptedUsername.payload,
       verifierIv: encryptedVerifier.iv,
       verifierPayload: encryptedVerifier.payload,
     },
@@ -100,8 +75,8 @@ async function buildStoredAccount(
 }
 
 async function validateStoredCredentials(
-  credentials: AuthCredentials,
-): Promise<{ username: string; encryptionKey: CryptoKey } | null> {
+  credentials: MasterPasswordCredentials,
+): Promise<CryptoKey | null> {
   const storedAccount = readStoredAccount();
 
   if (!storedAccount) {
@@ -109,36 +84,21 @@ async function validateStoredCredentials(
   }
 
   const encryptionKey = await deriveEncryptionKey(credentials.password, storedAccount.salt);
-  const [storedUsername, verifier] = await Promise.all([
-    decryptText(storedAccount.usernamePayload, storedAccount.usernameIv, encryptionKey),
-    decryptText(storedAccount.verifierPayload, storedAccount.verifierIv, encryptionKey),
-  ]);
+  const verifier = await decryptText(
+    storedAccount.verifierPayload,
+    storedAccount.verifierIv,
+    encryptionKey,
+  );
 
-  if (
-    verifier !== MASTER_PASSWORD_VERIFIER ||
-    storedUsername !== credentials.username.trim()
-  ) {
+  if (verifier !== MASTER_PASSWORD_VERIFIER) {
     return null;
   }
 
-  return {
-    username: storedUsername,
-    encryptionKey,
-  };
+  return encryptionKey;
 }
 
 export function hasConfiguredAccount(): boolean {
   return readStoredAccount() !== null;
-}
-
-export function getActiveUserProfile(): UserProfile | null {
-  if (!activeSession) {
-    return null;
-  }
-
-  return {
-    username: activeSession.username,
-  };
 }
 
 export function getActiveEncryptionKey(): CryptoKey | null {
@@ -149,63 +109,77 @@ export function clearActiveEncryptionKey(): void {
   activeSession = null;
 }
 
-export async function registerAccount(credentials: AuthCredentials): Promise<AuthResult> {
-  const validationResult = validateCredentialsInput(credentials);
+export async function initializeMasterPassword(
+  credentials: MasterPasswordCredentials,
+): Promise<AuthResult> {
+  const validationMessage = validateMasterPassword(credentials);
 
-  if (validationResult) {
-    return validationResult;
+  if (validationMessage) {
+    return {
+      status: "error",
+      message: validationMessage,
+    };
+  }
+
+  if (hasConfiguredAccount()) {
+    return {
+      status: "error",
+      message: "A vault is already configured. Unlock it with the current master password.",
+    };
   }
 
   const { storedAccount, encryptionKey } = await buildStoredAccount(credentials);
 
   saveStoredAccount(storedAccount);
   activeSession = {
-    username: credentials.username.trim(),
     encryptionKey,
   };
 
   return {
     status: "success",
-    message: "Account created successfully.",
+    message: "Master password configured successfully.",
   };
 }
 
-export async function login(credentials: AuthCredentials): Promise<AuthResult> {
-  const validationResult = validateCredentialsInput(credentials);
+export async function login(credentials: MasterPasswordCredentials): Promise<AuthResult> {
+  const validationMessage = validateMasterPassword(credentials);
 
-  if (validationResult) {
-    return validationResult;
-  }
-
-  const storedAccount = readStoredAccount();
-
-  if (!storedAccount) {
+  if (validationMessage) {
     return {
       status: "error",
-      message: "No account has been configured yet.",
+      message: validationMessage,
+    };
+  }
+
+  if (!hasConfiguredAccount()) {
+    return {
+      status: "error",
+      message: "No master password has been configured yet.",
     };
   }
 
   try {
-    const validatedCredentials = await validateStoredCredentials(credentials);
+    const encryptionKey = await validateStoredCredentials(credentials);
 
-    if (!validatedCredentials) {
+    if (!encryptionKey) {
       return {
         status: "error",
-        message: "Username or master password is invalid.",
+        message: "Master password is invalid.",
       };
     }
 
-    activeSession = validatedCredentials;
+    activeSession = {
+      encryptionKey,
+    };
 
     return {
       status: "success",
-      message: "Login successful.",
+      message: "Vault unlocked successfully.",
     };
   } catch {
     return {
       status: "error",
-      message: "Username or master password is invalid.",
+      message: "Master password is invalid.",
     };
   }
 }
@@ -227,10 +201,14 @@ export async function resetMasterPassword(
     };
   }
 
-  if (!input.newPassword.trim()) {
+  const validationMessage = validateMasterPassword({
+    password: input.newPassword,
+  });
+
+  if (validationMessage) {
     return {
       status: "error",
-      message: "New master password is required.",
+      message: validationMessage,
     };
   }
 
@@ -242,28 +220,25 @@ export async function resetMasterPassword(
   }
 
   try {
-    const validatedCredentials = await validateStoredCredentials({
-      username: activeSession.username,
+    const currentEncryptionKey = await validateStoredCredentials({
       password: input.currentPassword,
     });
 
-    if (!validatedCredentials) {
+    if (!currentEncryptionKey) {
       return {
         status: "error",
         message: "Current master password is invalid.",
       };
     }
 
-    const entries = await readVaultEntriesWithKey(validatedCredentials.encryptionKey);
+    const entries = await readVaultEntriesWithKey(currentEncryptionKey);
     const { storedAccount, encryptionKey } = await buildStoredAccount({
-      username: activeSession.username,
       password: input.newPassword,
     });
 
     await writeVaultEntriesWithKey(entries, encryptionKey);
     saveStoredAccount(storedAccount);
     activeSession = {
-      username: activeSession.username,
       encryptionKey,
     };
 

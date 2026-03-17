@@ -25,6 +25,7 @@ export interface PasswordEntryValidationErrors {
   username?: string;
   password?: string;
   url?: string;
+  form?: string;
 }
 
 export interface StoredEncryptedEntries {

@@ -1,8 +1,7 @@
 import {
   clearActiveEncryptionKey,
-  getActiveUserProfile,
+  initializeMasterPassword,
   login,
-  registerAccount,
   resetMasterPassword,
 } from "./masterPasswordService";
 
@@ -12,29 +11,26 @@ describe("masterPasswordService", () => {
     clearActiveEncryptionKey();
   });
 
-  it("registers and logs in with username and master password", async () => {
-    const registerResult = await registerAccount({
-      username: "david",
+  it("initializes and unlocks the vault with the master password", async () => {
+    const setupResult = await initializeMasterPassword({
       password: "Sup3rSecret!",
     });
 
     clearActiveEncryptionKey();
 
     const loginResult = await login({
-      username: "david",
       password: "Sup3rSecret!",
     });
 
-    expect(registerResult.status).toBe("success");
-    expect(loginResult.status).toBe("success");
-    expect(getActiveUserProfile()).toEqual({
-      username: "david",
+    expect(setupResult.status).toBe("success");
+    expect(loginResult).toEqual({
+      status: "success",
+      message: "Vault unlocked successfully.",
     });
   });
 
   it("rejects a reset when the current password is invalid", async () => {
-    await registerAccount({
-      username: "david",
+    await initializeMasterPassword({
       password: "Sup3rSecret!",
     });
 
