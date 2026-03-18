@@ -38,6 +38,7 @@ export default function ResetPasswordPanel({
       eyebrow="Security"
       title="Reset master password"
       description="Change the password used to unlock this vault."
+      className="bg-slate-50"
     >
       <form
         className="space-y-4"

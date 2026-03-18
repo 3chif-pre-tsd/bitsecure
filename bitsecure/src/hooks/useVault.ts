@@ -28,6 +28,8 @@ type Feedback = {
   message: string;
 } | null;
 
+export type WorkspaceMode = "idle" | "view" | "create" | "edit";
+
 export function useVault(isAuthenticated: boolean) {
   const [entries, setEntries] = useState<PasswordEntry[]>([]);
   const [entryDraft, setEntryDraft] = useState<PasswordEntryInput>(EMPTY_ENTRY_DRAFT);
@@ -37,6 +39,7 @@ export function useVault(isAuthenticated: boolean) {
   const [filterOption, setFilterOption] = useState<PasswordEntryFilterOption>("all");
   const [sortOption, setSortOption] = useState<PasswordEntrySortOption>("updated-desc");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("idle");
   const [isSavingEntry, setIsSavingEntry] = useState(false);
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
   const [vaultFeedback, setVaultFeedback] = useState<Feedback>(null);
@@ -51,6 +54,7 @@ export function useVault(isAuthenticated: boolean) {
       setFilterOption("all");
       setSortOption("updated-desc");
       setEditingEntryId(null);
+      setWorkspaceMode("idle");
       setIsSavingEntry(false);
       setIsLoadingEntries(false);
       setVaultFeedback(null);
@@ -78,12 +82,24 @@ export function useVault(isAuthenticated: boolean) {
           ? requestedEntryId
           : storedEntries[0]?.id ?? null;
       });
+      setWorkspaceMode((currentMode) => {
+        if (currentMode === "create") {
+          return "create";
+        }
+
+        if (storedEntries.length === 0) {
+          return "idle";
+        }
+
+        return "view";
+      });
       setVaultFeedback(null);
     } catch (error) {
       console.error("Failed to load vault entries.", error);
       setEntries([]);
       setSelectedEntryId(null);
       setEditingEntryId(null);
+      setWorkspaceMode("idle");
       setEntryDraft(EMPTY_ENTRY_DRAFT);
       setVaultFeedback({
         status: "error",
@@ -109,6 +125,24 @@ export function useVault(isAuthenticated: boolean) {
 
   function generatePassword() {
     updateEntryDraft("password", generateRandomPassword());
+  }
+
+  function startCreateEntry() {
+    setSelectedEntryId(null);
+    setEditingEntryId(null);
+    setWorkspaceMode("create");
+    setEntryDraft(EMPTY_ENTRY_DRAFT);
+    setEntryErrors({});
+    setVaultFeedback(null);
+  }
+
+  function selectEntry(entryId: string) {
+    setSelectedEntryId(entryId);
+    setEditingEntryId(null);
+    setWorkspaceMode("view");
+    setEntryDraft(EMPTY_ENTRY_DRAFT);
+    setEntryErrors({});
+    setVaultFeedback(null);
   }
 
   async function saveEntry(): Promise<string | null> {
@@ -137,6 +171,7 @@ export function useVault(isAuthenticated: boolean) {
         }
 
         await loadEntries(updatedEntry.id);
+        setWorkspaceMode("view");
         setVaultFeedback({
           status: "success",
           message: "Entry updated successfully.",
@@ -144,6 +179,7 @@ export function useVault(isAuthenticated: boolean) {
       } else {
         const createdEntry = await addPasswordEntry(entryDraft);
         await loadEntries(createdEntry.id);
+        setWorkspaceMode("view");
         setVaultFeedback({
           status: "success",
           message: "Entry added successfully.",
@@ -173,6 +209,7 @@ export function useVault(isAuthenticated: boolean) {
   function editEntry(entry: PasswordEntry) {
     setEditingEntryId(entry.id);
     setSelectedEntryId(entry.id);
+    setWorkspaceMode("edit");
     setEntryDraft({
       title: entry.title,
       username: entry.username,
@@ -185,7 +222,9 @@ export function useVault(isAuthenticated: boolean) {
   }
 
   function cancelEdit() {
+    const hasSelectedEntry = entries.some((entry) => entry.id === selectedEntryId);
     setEditingEntryId(null);
+    setWorkspaceMode(hasSelectedEntry ? "view" : "idle");
     setEntryDraft(EMPTY_ENTRY_DRAFT);
     setEntryErrors({});
     setVaultFeedback(null);
@@ -211,6 +250,7 @@ export function useVault(isAuthenticated: boolean) {
       }
 
       await loadEntries(selectedEntryId === entryId ? null : selectedEntryId);
+      setWorkspaceMode(entries.length > 1 ? "view" : "idle");
       setVaultFeedback({
         status: "success",
         message: "Entry deleted successfully.",
@@ -273,6 +313,7 @@ export function useVault(isAuthenticated: boolean) {
     entries,
     visibleEntries,
     selectedEntry,
+    workspaceMode,
     entryDraft,
     entryErrors,
     searchQuery,
@@ -285,7 +326,8 @@ export function useVault(isAuthenticated: boolean) {
     setSearchQuery,
     setFilterOption,
     setSortOption,
-    setSelectedEntryId,
+    selectEntry,
+    startCreateEntry,
     updateEntryDraft,
     generatePassword,
     saveEntry,

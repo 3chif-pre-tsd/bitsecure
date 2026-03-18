@@ -13,7 +13,7 @@ function NotFoundPage() {
           This page is not available.
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">
-          Use the navigation to return to the dashboard or create a new entry from a valid route.
+          Return to the vault workspace and continue from the main screen.
         </p>
       </section>
     </main>
@@ -39,7 +39,7 @@ function RootLayout() {
         />
       ) : null}
       {showAppLayout ? (
-        <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="mx-auto h-screen w-full max-w-7xl overflow-hidden px-4 pb-4 pt-20 sm:px-6 sm:pb-6 sm:pt-22 lg:px-8">
           <Outlet />
         </main>
       ) : (

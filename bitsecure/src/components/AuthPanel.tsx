@@ -44,19 +44,19 @@ export default function AuthPanel({
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="rounded-[24px] border border-slate-200 bg-slate-50 px-6 py-7 sm:px-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+      <div className="grid w-full max-w-4xl gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="rounded-2xl border border-slate-200 bg-white px-6 py-6">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
             <Icon name="vault" className="size-4" />
-            BitSecure
-          </span>
-          <h1 className="mt-5 max-w-lg text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+            <span>BitSecure</span>
+          </div>
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
             Local password manager
           </h1>
-          <p className="mt-3 max-w-lg text-sm leading-6 text-slate-600">
-            Your entries stay in this browser and are protected by one master password.
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Store and manage encrypted entries locally in this browser.
           </p>
-          <ul className="mt-6 space-y-3 text-sm leading-6 text-slate-600">
+          <ul className="mt-5 space-y-2.5 text-sm leading-6 text-slate-600">
             <li>No backend or extra setup.</li>
             <li>Entries are encrypted before storage.</li>
             <li>Resetting the vault clears local data only.</li>
@@ -107,9 +107,9 @@ export default function AuthPanel({
             </Button>
 
             {hasAccount ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
-                <p className="text-sm font-semibold text-rose-900">Need to start over?</p>
-                <p className="mt-1 text-sm leading-6 text-rose-700">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-medium text-slate-900">Reset local vault</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
                   Reset the local vault to remove all saved entries and password data from this
                   browser.
                 </p>

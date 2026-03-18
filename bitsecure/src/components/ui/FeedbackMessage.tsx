@@ -14,7 +14,7 @@ export default function FeedbackMessage({
   return (
     <div
       className={mergeClasses(
-        "rounded-2xl border px-4 py-3 text-sm",
+        "rounded-lg border px-3.5 py-2.5 text-sm",
         status === "success"
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
           : "border-rose-200 bg-rose-50 text-rose-700",
