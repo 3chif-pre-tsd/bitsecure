@@ -111,13 +111,13 @@ export function useVault(isAuthenticated: boolean) {
     updateEntryDraft("password", generateRandomPassword());
   }
 
-  async function saveEntry() {
+  async function saveEntry(): Promise<string | null> {
     const validationErrors = validatePasswordEntry(entryDraft, entries, editingEntryId);
 
     if (Object.keys(validationErrors).length > 0) {
       setEntryErrors(validationErrors);
       setVaultFeedback(null);
-      return;
+      return null;
     }
 
     setIsSavingEntry(true);
@@ -133,7 +133,7 @@ export function useVault(isAuthenticated: boolean) {
           });
           setEditingEntryId(null);
           await loadEntries();
-          return;
+          return null;
         }
 
         await loadEntries(updatedEntry.id);
@@ -148,17 +148,23 @@ export function useVault(isAuthenticated: boolean) {
           status: "success",
           message: "Entry added successfully.",
         });
+        setEntryDraft(EMPTY_ENTRY_DRAFT);
+        setEntryErrors({});
+        setEditingEntryId(null);
+        return createdEntry.id;
       }
 
       setEntryDraft(EMPTY_ENTRY_DRAFT);
       setEntryErrors({});
       setEditingEntryId(null);
+      return editingEntryId;
     } catch (error) {
       console.error("Failed to save vault entry.", error);
       setVaultFeedback({
         status: "error",
         message: "The entry could not be saved.",
       });
+      return null;
     } finally {
       setIsSavingEntry(false);
     }
