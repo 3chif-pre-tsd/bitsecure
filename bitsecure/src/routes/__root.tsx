@@ -39,7 +39,7 @@ function RootLayout() {
         />
       ) : null}
       {showAppLayout ? (
-        <main className="mx-auto h-screen w-full max-w-7xl overflow-hidden px-4 pb-4 pt-20 sm:px-6 sm:pb-6 sm:pt-22 lg:px-8">
+        <main className="mx-auto w-full max-w-7xl px-4 pb-6 pt-20 sm:px-6 sm:pt-22 lg:px-8">
           <Outlet />
         </main>
       ) : (

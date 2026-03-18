@@ -43,12 +43,7 @@ function WorkspacePanel({
   children: ReactNode;
 }) {
   return (
-    <section
-      className={mergeClasses(
-        "flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white",
-        className,
-      )}
-    >
+    <section className={mergeClasses("rounded-2xl border border-slate-200 bg-white", className)}>
       <header className="border-b border-slate-200 px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div>
@@ -61,7 +56,7 @@ function WorkspacePanel({
           {action}
         </div>
       </header>
-      <div className="min-h-0 flex-1">{children}</div>
+      <div>{children}</div>
     </section>
   );
 }
@@ -144,17 +139,18 @@ function DashboardPage() {
   const isCreating = vault.workspaceMode === "create";
   const isViewing = vault.workspaceMode === "view";
   const isIdle = vault.workspaceMode === "idle";
+  const isFormMode = isCreating || isEditing;
 
   useEffect(() => {
     setIsPasswordVisible(false);
     setCopyState("idle");
-  }, [selectedEntry?.id]);
+  }, [selectedEntry?.id, vault.workspaceMode]);
 
   useEffect(() => {
-    if (vault.workspaceMode === "create") {
+    if (isFormMode) {
       titleInputRef.current?.focus();
     }
-  }, [vault.workspaceMode]);
+  }, [isFormMode]);
 
   async function handleSaveEntry() {
     await vault.saveEntry();
@@ -186,7 +182,7 @@ function DashboardPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+    <div className="space-y-4">
       {vault.vaultFeedback ? (
         <FeedbackMessage
           status={vault.vaultFeedback.status}
@@ -194,7 +190,7 @@ function DashboardPage() {
         />
       ) : null}
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_400px]">
+      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
         <WorkspacePanel
           className="bg-slate-50/70"
           eyebrow="Entries"
@@ -210,67 +206,65 @@ function DashboardPage() {
             </Button>
           }
         >
-          <div className="flex h-full min-h-0 flex-col">
-            <div className="space-y-4 border-b border-slate-200 px-5 py-4 sm:px-6">
-              <InputField
-                id="entry-search"
-                label="Search entries"
-                placeholder="Search title, username, URL or notes"
-                value={vault.searchQuery}
-                onChange={(event) => vault.setSearchQuery(event.target.value)}
-              />
+          <div className="space-y-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+            <InputField
+              id="entry-search"
+              label="Search entries"
+              placeholder="Search title, username, URL or notes"
+              value={vault.searchQuery}
+              onChange={(event) => vault.setSearchQuery(event.target.value)}
+            />
 
-              <div className="grid gap-4">
-                <SelectField
-                  id="entry-filter"
-                  label="Filter"
-                  value={vault.filterOption}
-                  onChange={(event) =>
-                    vault.setFilterOption(event.target.value as PasswordEntryFilterOption)
-                  }
-                >
-                  <option value="all">All entries</option>
-                  <option value="with-url">Only with URL</option>
-                  <option value="with-notes">Only with notes</option>
-                </SelectField>
+            <div className="grid gap-4">
+              <SelectField
+                id="entry-filter"
+                label="Filter"
+                value={vault.filterOption}
+                onChange={(event) =>
+                  vault.setFilterOption(event.target.value as PasswordEntryFilterOption)
+                }
+              >
+                <option value="all">All entries</option>
+                <option value="with-url">Only with URL</option>
+                <option value="with-notes">Only with notes</option>
+              </SelectField>
 
-                <SelectField
-                  id="entry-sort"
-                  label="Sort"
-                  value={vault.sortOption}
-                  onChange={(event) =>
-                    vault.setSortOption(event.target.value as PasswordEntrySortOption)
-                  }
-                >
-                  <option value="updated-desc">Recently updated</option>
-                  <option value="created-desc">Recently created</option>
-                  <option value="title-asc">Title A-Z</option>
-                </SelectField>
+              <SelectField
+                id="entry-sort"
+                label="Sort"
+                value={vault.sortOption}
+                onChange={(event) =>
+                  vault.setSortOption(event.target.value as PasswordEntrySortOption)
+                }
+              >
+                <option value="updated-desc">Recently updated</option>
+                <option value="created-desc">Recently created</option>
+                <option value="title-asc">Title A-Z</option>
+              </SelectField>
+            </div>
+          </div>
+
+          <div className="max-h-[32rem] overflow-y-auto">
+            {vault.isLoadingEntries ? (
+              <div className="px-5 py-12 text-center text-sm text-slate-500">
+                Loading encrypted entries...
               </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-hidden">
-              {vault.isLoadingEntries ? (
-                <div className="px-5 py-12 text-center text-sm text-slate-500">
-                  Loading encrypted entries...
-                </div>
-              ) : vault.visibleEntries.length > 0 ? (
-                <div className="h-full overflow-y-auto">
-                  {vault.visibleEntries.map((entry) => (
-                    <EntryListItem
-                      key={entry.id}
-                      entry={entry}
-                      isSelected={selectedEntry?.id === entry.id}
-                      onSelect={() => vault.selectEntry(entry.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="px-5 py-12 text-center text-sm leading-6 text-slate-500">
-                  No entries match the current search and filter combination.
-                </div>
-              )}
-            </div>
+            ) : vault.visibleEntries.length > 0 ? (
+              <div>
+                {vault.visibleEntries.map((entry) => (
+                  <EntryListItem
+                    key={entry.id}
+                    entry={entry}
+                    isSelected={selectedEntry?.id === entry.id}
+                    onSelect={() => vault.selectEntry(entry.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="px-5 py-12 text-center text-sm leading-6 text-slate-500">
+                No entries match the current search and filter combination.
+              </div>
+            )}
           </div>
         </WorkspacePanel>
 
@@ -283,19 +277,19 @@ function DashboardPage() {
             isViewing && selectedEntry
               ? selectedEntry.title
               : isEditing
-                ? "Editing credential"
+                ? "Edit credential"
                 : isCreating
-                  ? "Creating new credential"
+                  ? "Add new credential"
                   : "Entry details"
           }
           description={
             isViewing && selectedEntry
               ? "View and manage the selected credential."
               : isEditing
-                ? "Finish editing or cancel to return to entry details."
+                ? "Update the selected credential below."
                 : isCreating
-                  ? "No entry is selected while you create a new credential."
-                  : "Select an entry from the list or create a new one."
+                  ? "Enter the details for a new credential."
+                  : "Select an entry from the list or start a new one."
           }
           action={
             isViewing && selectedEntry ? (
@@ -317,120 +311,81 @@ function DashboardPage() {
                   Delete
                 </Button>
               </div>
+            ) : isFormMode ? (
+              <Button variant="ghost" onClick={() => vault.cancelEdit()} disabled={vault.isSavingEntry}>
+                Cancel
+              </Button>
             ) : null
           }
         >
-          <div className="h-full overflow-y-auto">
-            {isViewing && selectedEntry ? (
-              <div className="space-y-5 px-5 py-4 sm:px-6">
-                <section className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        Password
+          {isViewing && selectedEntry ? (
+            <div className="space-y-5 px-5 py-4 sm:px-6">
+              <section className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Password
+                    </p>
+                    <p className="mt-2 break-all font-mono text-lg tracking-[0.18em] text-slate-950">
+                      {isPasswordVisible ? selectedEntry.password : "************"}
+                    </p>
+                    {copyState === "success" ? (
+                      <p className="mt-2 text-xs font-semibold text-emerald-600">
+                        Password copied to clipboard.
                       </p>
-                      <p className="mt-2 break-all font-mono text-lg tracking-[0.18em] text-slate-950">
-                        {isPasswordVisible ? selectedEntry.password : "************"}
+                    ) : null}
+                    {copyState === "error" ? (
+                      <p className="mt-2 text-xs font-semibold text-rose-600">
+                        Password could not be copied.
                       </p>
-                      {copyState === "success" ? (
-                        <p className="mt-2 text-xs font-semibold text-emerald-600">
-                          Password copied to clipboard.
-                        </p>
-                      ) : null}
-                      {copyState === "error" ? (
-                        <p className="mt-2 text-xs font-semibold text-rose-600">
-                          Password could not be copied.
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        variant="secondary"
-                        onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
-                      >
-                        <Icon name={isPasswordVisible ? "eyeOff" : "eye"} className="size-4" />
-                        {isPasswordVisible ? "Hide" : "Show"}
-                      </Button>
-                      <Button variant="secondary" onClick={() => void handleCopyPassword()}>
-                        <Icon name="copy" className="size-4" />
-                        Copy password
-                      </Button>
-                    </div>
+                    ) : null}
                   </div>
-                </section>
 
-                <dl className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                  <EntryMetaRow label="Username" value={selectedEntry.username} />
-                  <EntryMetaRow
-                    label="URL"
-                    value={
-                      selectedEntry.url ? (
-                        <a
-                          href={selectedEntry.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 font-medium text-slate-700 underline decoration-slate-300 underline-offset-4"
-                        >
-                          <Icon name="link" className="size-4" />
-                          {selectedEntry.url}
-                        </a>
-                      ) : (
-                        "No URL"
-                      )
-                    }
-                  />
-                  <EntryMetaRow label="Notes" value={selectedEntry.notes || "No notes"} />
-                  <EntryMetaRow label="Created" value={formatDateTime(selectedEntry.createdAt)} />
-                  <EntryMetaRow label="Updated" value={formatDateTime(selectedEntry.updatedAt)} />
-                </dl>
-              </div>
-            ) : (
-              <div className="px-5 py-10 sm:px-6">
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-sm leading-6 text-slate-500">
-                  {isCreating
-                    ? "Create mode is active. Complete the form on the right to add a new credential."
-                    : isEditing
-                      ? "Edit mode is active. Save or cancel your changes in the form on the right."
-                      : isIdle
-                        ? "No entry is selected. Choose one from the list or start a new entry."
-                        : "Choose an entry on the left to view its details."}
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
+                    >
+                      <Icon name={isPasswordVisible ? "eyeOff" : "eye"} className="size-4" />
+                      {isPasswordVisible ? "Hide" : "Show"}
+                    </Button>
+                    <Button variant="secondary" onClick={() => void handleCopyPassword()}>
+                      <Icon name="copy" className="size-4" />
+                      Copy password
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </WorkspacePanel>
+              </section>
 
-        <div className="flex min-h-0 flex-col gap-4">
-          <WorkspacePanel
-            className={mergeClasses(
-              "min-h-0 flex-1 bg-slate-50/70",
-              (isEditing || isCreating) && "border-slate-300",
-            )}
-            eyebrow={isEditing ? "Edit mode" : isCreating ? "Create mode" : "Form"}
-            title={isEditing ? "Edit credential" : "Add new credential"}
-            description={
-              isEditing
-                ? "Edit the selected entry in place."
-                : isCreating
-                  ? "Enter the details for a new credential."
-                  : "Start a new entry or select one and switch to edit mode."
-            }
-            action={
-              isEditing || isCreating ? (
-                <Button
-                  variant="ghost"
-                  onClick={() => vault.cancelEdit()}
-                  disabled={vault.isSavingEntry}
-                >
-                  Cancel edit
-                </Button>
-              ) : null
-            }
-          >
-            <div className="h-full overflow-y-auto px-5 py-4 sm:px-6">
+              <dl className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <EntryMetaRow label="Username" value={selectedEntry.username} />
+                <EntryMetaRow
+                  label="URL"
+                  value={
+                    selectedEntry.url ? (
+                      <a
+                        href={selectedEntry.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 font-medium text-slate-700 underline decoration-slate-300 underline-offset-4"
+                      >
+                        <Icon name="link" className="size-4" />
+                        {selectedEntry.url}
+                      </a>
+                    ) : (
+                      "No URL"
+                    )
+                  }
+                />
+                <EntryMetaRow label="Notes" value={selectedEntry.notes || "No notes"} />
+                <EntryMetaRow label="Created" value={formatDateTime(selectedEntry.createdAt)} />
+                <EntryMetaRow label="Updated" value={formatDateTime(selectedEntry.updatedAt)} />
+              </dl>
+            </div>
+          ) : isFormMode ? (
+            <div className="px-5 py-4 sm:px-6">
               <form
-                className="space-y-5"
+                className="space-y-6"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void handleSaveEntry();
@@ -445,7 +400,7 @@ function DashboardPage() {
                   <FeedbackMessage status="error" message={vault.vaultFeedback.message} />
                 ) : null}
 
-                <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                <section className="grid gap-5 rounded-xl border border-slate-200 bg-white p-5">
                   <InputField
                     id="entry-title"
                     ref={titleInputRef}
@@ -482,11 +437,7 @@ function DashboardPage() {
                     hint="Generate a strong random password when needed."
                   />
 
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={vault.generatePassword}
-                  >
+                  <Button variant="secondary" className="w-full sm:w-fit" onClick={vault.generatePassword}>
                     <Icon name="plus" className="size-4" />
                     Generate random password
                   </Button>
@@ -509,19 +460,17 @@ function DashboardPage() {
                     value={vault.entryDraft.notes}
                     onChange={(event) => vault.updateEntryDraft("notes", event.target.value)}
                     placeholder="Optional notes"
-                    className="min-h-24"
+                    className="min-h-32"
                   />
                 </section>
 
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                   <Button
                     variant="secondary"
-                    onClick={() =>
-                      isEditing || isCreating ? vault.cancelEdit() : vault.startCreateEntry()
-                    }
+                    onClick={() => vault.cancelEdit()}
                     disabled={vault.isSavingEntry}
                   >
-                    {isEditing || isCreating ? "Cancel" : "New entry"}
+                    Cancel
                   </Button>
                   <Button type="submit" disabled={vault.isSavingEntry}>
                     <Icon name={isEditing ? "edit" : "plus"} className="size-4" />
@@ -534,24 +483,32 @@ function DashboardPage() {
                 </div>
               </form>
             </div>
-          </WorkspacePanel>
-
-          <ResetPasswordPanel
-            currentPassword={auth.resetDraft.currentPassword}
-            newPassword={auth.resetDraft.newPassword}
-            confirmPassword={auth.resetDraft.confirmPassword}
-            currentPasswordError={auth.resetErrors.currentPassword}
-            newPasswordError={auth.resetErrors.newPassword}
-            confirmPasswordError={auth.resetErrors.confirmPassword}
-            isSubmitting={auth.isResettingPassword}
-            resetResult={auth.resetResult}
-            onChange={auth.updateResetDraft}
-            onSubmit={() => {
-              void auth.submitResetMasterPassword();
-            }}
-          />
-        </div>
+          ) : (
+            <div className="px-5 py-10 sm:px-6">
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-sm leading-6 text-slate-500">
+                {isIdle
+                  ? "No entry is selected. Choose one from the list or start a new entry."
+                  : "Select an entry from the list to view its details."}
+              </div>
+            </div>
+          )}
+        </WorkspacePanel>
       </div>
+
+      <ResetPasswordPanel
+        currentPassword={auth.resetDraft.currentPassword}
+        newPassword={auth.resetDraft.newPassword}
+        confirmPassword={auth.resetDraft.confirmPassword}
+        currentPasswordError={auth.resetErrors.currentPassword}
+        newPasswordError={auth.resetErrors.newPassword}
+        confirmPasswordError={auth.resetErrors.confirmPassword}
+        isSubmitting={auth.isResettingPassword}
+        resetResult={auth.resetResult}
+        onChange={auth.updateResetDraft}
+        onSubmit={() => {
+          void auth.submitResetMasterPassword();
+        }}
+      />
     </div>
   );
 }
