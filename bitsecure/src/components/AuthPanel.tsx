@@ -32,52 +32,38 @@ export default function AuthPanel({
   onSubmit,
   onResetLocalVault,
 }: AuthPanelProps) {
-  const title = hasAccount ? "Unlock your vault" : "Set your master password";
+  const title = hasAccount ? "Unlock vault" : "Create vault";
   const description = hasAccount
-    ? "Enter the master password to unlock the encrypted local vault stored in this browser."
-    : "Create a master password to initialize the encrypted local vault for this prototype.";
+    ? "Enter your master password to continue."
+    : "Choose a master password to start using this browser vault.";
   const buttonLabel = isSubmitting
     ? "Please wait..."
     : hasAccount
-      ? "Unlock vault"
+      ? "Unlock"
       : "Create vault";
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="overflow-hidden rounded-[36px] border border-slate-900/10 bg-slate-950 px-8 py-10 text-white shadow-2xl shadow-slate-950/20 sm:px-10">
-          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+      <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="rounded-[24px] border border-slate-200 bg-slate-50 px-6 py-7 sm:px-8">
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
             <Icon name="vault" className="size-4" />
             BitSecure
           </span>
-          <h1 className="mt-6 max-w-xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            Secure local credentials with one consistent master password flow.
+          <h1 className="mt-5 max-w-lg text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+            Local password manager
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-            BitSecure keeps the project focused on a presentation-ready local prototype with
-            encrypted browser storage, reliable vault access, and streamlined credential handling.
+          <p className="mt-3 max-w-lg text-sm leading-6 text-slate-600">
+            Your entries stay in this browser and are protected by one master password.
           </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Local storage</p>
-              <p className="mt-2 text-lg font-medium">No API, no database, no extra setup</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                Encrypted vault
-              </p>
-              <p className="mt-2 text-lg font-medium">Entries stay protected in the browser</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                Focused access
-              </p>
-              <p className="mt-2 text-lg font-medium">One master password for setup and unlock</p>
-            </div>
-          </div>
+          <ul className="mt-6 space-y-3 text-sm leading-6 text-slate-600">
+            <li>No backend or extra setup.</li>
+            <li>Entries are encrypted before storage.</li>
+            <li>Resetting the vault clears local data only.</li>
+          </ul>
         </section>
 
-        <Panel eyebrow="Secure access" title={title} description={description} className="self-center">
+        <Panel eyebrow="Access" title={title} description={description} className="self-center">
           <form
             className="space-y-5"
             onSubmit={(event) => {
@@ -95,7 +81,7 @@ export default function AuthPanel({
               placeholder={hasAccount ? "Enter your master password" : "Choose a master password"}
               autoComplete={hasAccount ? "current-password" : "new-password"}
               error={passwordError}
-              hint={!hasAccount ? "Use at least 8 characters for a reliable local demo." : undefined}
+              hint={!hasAccount ? "Use at least 8 characters." : undefined}
             />
 
             {!hasAccount ? (
@@ -121,11 +107,11 @@ export default function AuthPanel({
             </Button>
 
             {hasAccount ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4">
-                <p className="text-sm font-semibold text-rose-900">Locked out or vault not loading?</p>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <p className="text-sm font-semibold text-rose-900">Need to start over?</p>
                 <p className="mt-1 text-sm leading-6 text-rose-700">
-                  Reset the local vault to remove all stored entries and master-password data from
-                  this browser, then start again with a fresh setup.
+                  Reset the local vault to remove all saved entries and password data from this
+                  browser.
                 </p>
                 <Button
                   variant="danger"

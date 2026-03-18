@@ -41,31 +41,29 @@ function EditEntryPage() {
   }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:p-8">
+    <div className="mx-auto max-w-4xl">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <Link
               to="/dashboard/$entryId"
               params={{ entryId }}
-              className="text-sm font-semibold text-cyan-700 hover:text-cyan-800"
+              className="text-sm font-semibold text-slate-600 hover:text-slate-950"
             >
               Back to entry
             </Link>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
-              Edit entry
-            </p>
+            <p className="mt-4 text-sm font-medium text-slate-500">Edit entry</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
               Update {entry?.title ?? "entry"}
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Edit the stored credential on a dedicated page so field validation, generated passwords, and save actions stay grouped clearly.
+              Update the saved details and save your changes.
             </p>
           </div>
         </div>
 
         <form
-          className="mt-8 space-y-8"
+          className="mt-8 space-y-6"
           onSubmit={(event) => {
             event.preventDefault();
             void handleSubmit();
@@ -80,12 +78,10 @@ function EditEntryPage() {
             <FeedbackMessage status="error" message={vault.vaultFeedback.message} />
           ) : null}
 
-          <section className="grid gap-6 rounded-[28px] border border-slate-200 bg-slate-50 p-5 sm:p-6">
+          <section className="grid gap-6 rounded-xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Credential basics</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Update the primary fields first, then revise optional details below.
-              </p>
+              <p className="mt-1 text-sm text-slate-600">Required fields.</p>
             </div>
 
             <InputField
@@ -135,12 +131,10 @@ function EditEntryPage() {
             </div>
           </section>
 
-          <section className="grid gap-6 rounded-[28px] border border-slate-200 bg-white p-5 sm:p-6">
+          <section className="grid gap-6 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Additional details</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Keep the supporting context accurate for easier recognition later.
-              </p>
+              <p className="mt-1 text-sm text-slate-600">Optional fields.</p>
             </div>
 
             <InputField
@@ -177,27 +171,6 @@ function EditEntryPage() {
           </div>
         </form>
       </section>
-
-      <aside className="space-y-6">
-        <section className="rounded-[30px] border border-slate-200 bg-slate-950 p-6 text-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.85)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
-            Edit workflow
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight">Dedicated update screen</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Editing happens outside the list and detail view, which keeps accidental changes easier to avoid.
-          </p>
-        </section>
-
-        <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
-          <p className="text-sm font-semibold text-slate-950">Current entry</p>
-          <p className="mt-4 text-sm leading-6 text-slate-600">
-            {entry?.title
-              ? `You are editing the record for ${entry.title}.`
-              : "The selected entry is still loading."}
-          </p>
-        </section>
-      </aside>
     </div>
   );
 }

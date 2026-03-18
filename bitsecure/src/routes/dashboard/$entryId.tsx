@@ -54,15 +54,13 @@ function EntryDetailPage() {
 
   if (!vault.isLoadingEntries && !entry) {
     return (
-      <section className="rounded-[30px] border border-slate-200 bg-white p-8 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
-          Entry details
-        </p>
+      <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <p className="text-sm font-medium text-slate-500">Entry</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-          This entry is no longer available.
+          Entry not found
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">
-          The selected record could not be found in the local vault. Return to the dashboard to choose another entry.
+          This entry is no longer in the vault. Return to the dashboard to choose another one.
         </p>
         <div className="mt-6">
           <Link to="/dashboard">
@@ -74,20 +72,18 @@ function EntryDetailPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="flex flex-col gap-5 rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:flex-row sm:items-start sm:justify-between sm:p-8">
+    <div className="space-y-6">
+      <section className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:p-8">
         <div>
-          <Link to="/dashboard" className="text-sm font-semibold text-cyan-700 hover:text-cyan-800">
+          <Link to="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-slate-950">
             Back to dashboard
           </Link>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
-            Entry details
-          </p>
+          <p className="mt-4 text-sm font-medium text-slate-500">Entry</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
             {entry?.title ?? "Loading entry"}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Review the full record here, then edit or delete it from a dedicated action area instead of a crowded dashboard column.
+            View the saved details and manage this entry.
           </p>
         </div>
 
@@ -111,14 +107,14 @@ function EntryDetailPage() {
         <FeedbackMessage status={vault.vaultFeedback.status} message={vault.vaultFeedback.message} />
       ) : null}
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-6 rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:p-8">
-          <div className="grid gap-6 rounded-[28px] border border-slate-200 bg-slate-50 p-5 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
+        <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="grid gap-6 rounded-xl border border-slate-200 bg-slate-50 p-5 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-start">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Username</p>
             <p className="break-all text-lg font-semibold text-slate-950">{entry?.username}</p>
           </div>
 
-          <div className="grid gap-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+          <div className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
@@ -155,7 +151,7 @@ function EntryDetailPage() {
             </div>
           </div>
 
-          <dl className="overflow-hidden rounded-[28px] border border-slate-200">
+          <dl className="overflow-hidden rounded-xl border border-slate-200">
             <div className="grid gap-3 border-b border-slate-200 bg-white px-5 py-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-start">
               <dt className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">URL</dt>
               <dd className="break-all text-sm leading-6 text-slate-700">
@@ -200,22 +196,12 @@ function EntryDetailPage() {
         </section>
 
         <aside className="space-y-6">
-          <section className="rounded-[30px] border border-slate-200 bg-slate-950 p-6 text-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.85)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
-              Action area
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">Focused record review</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              Sensitive actions stay next to the selected entry only, so the dashboard remains dedicated to browsing.
-            </p>
-          </section>
-
-          <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
-            <p className="text-sm font-semibold text-slate-950">Current status</p>
-            <p className="mt-4 text-sm leading-6 text-slate-600">
+          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-semibold text-slate-950">Status</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
               {entry?.url || entry?.notes
-                ? "This record includes extra context for faster recognition."
-                : "This record only stores the essential credentials."}
+                ? "This entry includes extra context."
+                : "This entry contains only the main login details."}
             </p>
           </section>
         </aside>

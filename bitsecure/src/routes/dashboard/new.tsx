@@ -29,18 +29,16 @@ function CreateEntryPage() {
   }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:p-8">
+    <div className="mx-auto max-w-4xl">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
-              Create entry
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-              Add a new credential record
+            <p className="text-sm font-medium text-slate-500">Create entry</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">
+              New password entry
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Keep required fields together, add optional context below, and save the encrypted entry into the local vault.
+              Add the required details and save the entry to your vault.
             </p>
           </div>
 
@@ -50,7 +48,7 @@ function CreateEntryPage() {
         </div>
 
         <form
-          className="mt-8 space-y-8"
+          className="mt-8 space-y-6"
           onSubmit={(event) => {
             event.preventDefault();
             void handleSubmit();
@@ -65,12 +63,10 @@ function CreateEntryPage() {
             <FeedbackMessage status="error" message={vault.vaultFeedback.message} />
           ) : null}
 
-          <section className="grid gap-6 rounded-[28px] border border-slate-200 bg-slate-50 p-5 sm:p-6">
+          <section className="grid gap-6 rounded-xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Credential basics</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Required fields are grouped here for faster entry creation.
-              </p>
+              <p className="mt-1 text-sm text-slate-600">Required fields.</p>
             </div>
 
             <InputField
@@ -120,12 +116,10 @@ function CreateEntryPage() {
             </div>
           </section>
 
-          <section className="grid gap-6 rounded-[28px] border border-slate-200 bg-white p-5 sm:p-6">
+          <section className="grid gap-6 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Additional details</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Store the URL and any notes that help identify this credential later.
-              </p>
+              <p className="mt-1 text-sm text-slate-600">Optional fields.</p>
             </div>
 
             <InputField
@@ -162,27 +156,6 @@ function CreateEntryPage() {
           </div>
         </form>
       </section>
-
-      <aside className="space-y-6">
-        <section className="rounded-[30px] border border-slate-200 bg-slate-950 p-6 text-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.85)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
-            Form guidance
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight">One page, one responsibility</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            This screen is dedicated to creating a single vault entry, so validation feedback and save actions stay easy to scan.
-          </p>
-        </section>
-
-        <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
-          <p className="text-sm font-semibold text-slate-950">Required fields</p>
-          <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-            <li>Title identifies the service or account.</li>
-            <li>Username and password are required for encrypted storage.</li>
-            <li>URL and notes stay optional and can be added later.</li>
-          </ul>
-        </section>
-      </aside>
     </div>
   );
 }

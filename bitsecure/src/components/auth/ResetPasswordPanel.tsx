@@ -35,9 +35,9 @@ export default function ResetPasswordPanel({
 }: ResetPasswordPanelProps) {
   return (
     <Panel
-      eyebrow="Account security"
+      eyebrow="Security"
       title="Reset master password"
-      description="Verify the current password, set a new one, and keep the vault re-encrypted under the updated credentials."
+      description="Change the password used to unlock this vault."
     >
       <form
         className="space-y-4"
@@ -75,7 +75,7 @@ export default function ResetPasswordPanel({
 
         <Button type="submit" disabled={isSubmitting}>
           <Icon name="vault" className="size-4" />
-          {isSubmitting ? "Updating..." : "Update master password"}
+          {isSubmitting ? "Updating..." : "Save new password"}
         </Button>
       </form>
     </Panel>

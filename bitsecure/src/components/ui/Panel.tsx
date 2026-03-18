@@ -20,14 +20,14 @@ export default function Panel({
   return (
     <section
       className={mergeClasses(
-        "rounded-[30px] border border-white/70 bg-white/85 p-6 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] backdrop-blur sm:p-7",
+        "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7",
         className,
       )}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           {eyebrow ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               {eyebrow}
             </p>
           ) : null}
