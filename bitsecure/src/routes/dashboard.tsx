@@ -311,10 +311,6 @@ function DashboardPage() {
                   Delete
                 </Button>
               </div>
-            ) : isFormMode ? (
-              <Button variant="ghost" onClick={() => vault.cancelEdit()} disabled={vault.isSavingEntry}>
-                Cancel
-              </Button>
             ) : null
           }
         >
